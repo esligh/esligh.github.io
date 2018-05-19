@@ -2,6 +2,55 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://esligh.github.io/2017/09/29/aosp-inputmanager-input-dispatch-src/</loc>
+    
+    <lastmod>2018-05-19T15:01:55.702Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/2015/11/19/android-libray-volley-src/</loc>
+    
+    <lastmod>2018-05-19T14:42:33.077Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/2017/07/19/android-libray-sparsearray-src/</loc>
+    
+    <lastmod>2018-05-19T11:53:20.674Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/2017/09/25/aosp-system-zygote-startup/</loc>
+    
+    <lastmod>2018-05-19T11:47:54.443Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/2017/07/19/jdk-arraylist-src/</loc>
+    
+    <lastmod>2018-05-19T11:43:53.454Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/2016/08/25/jdk-aqs-src/</loc>
+    
+    <lastmod>2018-05-19T11:32:53.183Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/2017/09/22/aosp-gui-surfaceflinger-startup/</loc>
+    
+    <lastmod>2018-05-19T11:02:18.824Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://esligh.github.io/2017/09/10/aosp-choreographer/</loc>
     
     <lastmod>2018-05-19T10:14:31.597Z</lastmod>
