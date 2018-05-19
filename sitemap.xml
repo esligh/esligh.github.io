@@ -2,6 +2,20 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://esligh.github.io/2017/09/10/aosp-choreographer/</loc>
+    
+    <lastmod>2018-05-19T10:14:31.597Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/2017/09/19/aosp-startactivity-1/</loc>
+    
+    <lastmod>2018-05-19T09:03:09.246Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://esligh.github.io/about/index.html</loc>
     
     <lastmod>2018-05-18T14:56:05.422Z</lastmod>
@@ -26,13 +40,6 @@
     <loc>http://esligh.github.io/links/index.html</loc>
     
     <lastmod>2018-05-18T09:48:44.096Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://esligh.github.io/2018/05/18/hello-world/</loc>
-    
-    <lastmod>2018-05-18T08:18:54.476Z</lastmod>
     
   </url>
   
