@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Android," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="Android系统从4.1(API 16)开始加入Choreographer这个类来控制同步处理输入(Input)、动画(Animation)、绘制(Draw)三个UI操作。 Choreographer 即编舞者 负责协调app端的图形绘制，这里主要是等待vsync信号。垂直信号到来后就要开始准备绘制下一帧的数据。Choreographer主要是在ViewRootImpl中使用的，ViewRoot">
+<meta name="keywords" content="Android">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Vsync信号图形绘制-Choreographer源码分析">
+<meta property="og:url" content="http://esligh.github.io/[object Object]/aosp-choreographer/index.html">
+<meta property="og:site_name" content="esli&#39;s Blog">
+<meta property="og:description" content="Android系统从4.1(API 16)开始加入Choreographer这个类来控制同步处理输入(Input)、动画(Animation)、绘制(Draw)三个UI操作。 Choreographer 即编舞者 负责协调app端的图形绘制，这里主要是等待vsync信号。垂直信号到来后就要开始准备绘制下一帧的数据。Choreographer主要是在ViewRootImpl中使用的，ViewRoot">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-03-16T08:03:42.245Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Vsync信号图形绘制-Choreographer源码分析">
+<meta name="twitter:description" content="Android系统从4.1(API 16)开始加入Choreographer这个类来控制同步处理输入(Input)、动画(Animation)、绘制(Draw)三个UI操作。 Choreographer 即编舞者 负责协调app端的图形绘制，这里主要是等待vsync信号。垂直信号到来后就要开始准备绘制下一帧的数据。Choreographer主要是在ViewRootImpl中使用的，ViewRoot">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://esligh.github.io/[object Object]/aosp-choreographer/"/>
+
+
+
+
+
+  <title>Vsync信号图形绘制-Choreographer源码分析 | esli's Blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">esli's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">day day up</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://esligh.github.io/[object Object]/aosp-choreographer/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="esli">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="esli's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Vsync信号图形绘制-Choreographer源码分析</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-07T15:32:56+08:00">
+                2018-06-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AOSP/" itemprop="url" rel="index">
+                    <span itemprop="name">AOSP</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+             <span id="/[object Object]/aosp-choreographer/" class="leancloud_visitors" data-flag-title="Vsync信号图形绘制-Choreographer源码分析">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Android系统从4.1(API 16)开始加入Choreographer这个类来控制同步处理输入(Input)、动画(Animation)、绘制(Draw)三个UI操作。</p>
+<p>Choreographer 即编舞者 负责协调app端的图形绘制，这里主要是等待vsync信号。垂直信号到来后就要开始准备绘制下一帧的数据。Choreographer主要是在ViewRootImpl中使用的，ViewRootImpl是view树的管理者，负责view树的逻辑处理及事件事件输入。</p>
+<p>所有的绘制流程是从ViewRootImpl.java的scheduleTraversals开始的，这个方法会去请求vsync信号，并在信号到来时去绘制更新ui。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">scheduleTraversals</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!mTraversalScheduled) &#123;</span><br><span class="line">        mTraversalScheduled = <span class="keyword">true</span>;</span><br><span class="line">        mTraversalBarrier = mHandler.getLooper().getQueue().postSyncBarrier();</span><br><span class="line">        <span class="comment">//请求vsync信号，当vsync信号到达后开始mTraversalRunnable任务,垂直信号的接受由ChoreoGrpaher负责</span></span><br><span class="line">        mChoreographer.postCallback(</span><br><span class="line">                Choreographer.CALLBACK_TRAVERSAL, mTraversalRunnable, <span class="keyword">null</span>);</span><br><span class="line">    ……</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里我们不关心具体的绘制过程，主要是看Choreographer如何通过vysnc信号来协调界面的绘制。<br>
+这里首先是通过Choreographer对象mChoreographer对象post了一个回调，告诉Choreographer当vsync信号到达时帮我调用mTraversalRunable回调。这个回调的定义如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">TraversalRunnable</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        doTraversal();<span class="comment">//vsync信号到达后执行绘制流程</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">final</span> TraversalRunnable mTraversalRunnable = <span class="keyword">new</span> TraversalRunnable();</span><br></pre></td></tr></table></figure>
+<p>doTraversal()内部会调用performTraversals()方法，从而开启view绘制的三大流程。</p>
+<p>下面我们看看Choreographer是如何将vsync接受信号并告之ViewRoomImpl的刷新回调的。我们就从这个postCallback入手分析。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">postCallback</span><span class="params">(<span class="keyword">int</span> callbackType, Runnable action, Object token)</span> </span>&#123;</span><br><span class="line">        postCallbackDelayed(callbackType, action, token, <span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">postCallbackDelayed</span><span class="params">(<span class="keyword">int</span> callbackType,</span></span></span><br><span class="line"><span class="function"><span class="params">            Runnable action, Object token, <span class="keyword">long</span> delayMillis)</span> </span>&#123;</span><br><span class="line">        ……</span><br><span class="line">        postCallbackDelayedInternal(callbackType, action, token, delayMillis);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//post一个延时回调</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">postCallbackDelayedInternal</span><span class="params">(<span class="keyword">int</span> callbackType,Object action, Object token, <span class="keyword">long</span> delayMillis)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (mLock) &#123;</span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> now = SystemClock.uptimeMillis();</span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> dueTime = now + delayMillis;</span><br><span class="line">        <span class="comment">//将请求的回调按照相应的类型添加到回调队列中，这里会根据一个失效时间来构造</span></span><br><span class="line">        mCallbackQueues[callbackType].addCallbackLocked(dueTime, action, token);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (dueTime &lt;= now) &#123;<span class="comment">//延时为0时调用 ，对于scheduleTraversals走这里</span></span><br><span class="line">            scheduleFrameLocked(now);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            Message msg = mHandler.obtainMessage(MSG_DO_SCHEDULE_CALLBACK, action);</span><br><span class="line">            msg.arg1 = callbackType;</span><br><span class="line">            msg.setAsynchronous(<span class="keyword">true</span>);</span><br><span class="line">            mHandler.sendMessageAtTime(msg, dueTime);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>postCallback最终会调用postCallbackDelayedInternal，参数delayMillis为0，所以会调用scheduleFrameLocked进一步进行操作。这里需要注意的是每次请求都会添加到其类型对应的回调队列中， 这里的mCallbackQueues是一个根据类型区分的回调队列，有四种类型，分别是输入回调，动画回调和绘制回调以及Choreographer.CALLBACK_COMMIT。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">scheduleFrameLocked</span><span class="params">(<span class="keyword">long</span> now)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!mFrameScheduled) &#123;</span><br><span class="line">        mFrameScheduled = <span class="keyword">true</span>;</span><br><span class="line">        <span class="keyword">if</span> (USE_VSYNC) &#123;<span class="comment">//使用vsync信号更新</span></span><br><span class="line">            <span class="keyword">if</span> (DEBUG_FRAMES) &#123;</span><br><span class="line">                Log.d(TAG, <span class="string">"Scheduling next frame on vsync."</span>);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// If running on the Looper thread, then schedule the vsync immediately,</span></span><br><span class="line">            <span class="comment">// otherwise post a message to schedule the vsync from the UI thread</span></span><br><span class="line">            <span class="comment">// as soon as possible.</span></span><br><span class="line">            <span class="keyword">if</span> (isRunningOnLooperThreadLocked()) &#123;</span><br><span class="line">                scheduleVsyncLocked();</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;<span class="comment">//通过ui线程发送请求等待一个vsync信号 </span></span><br><span class="line">                Message msg = mHandler.obtainMessage(MSG_DO_SCHEDULE_VSYNC);</span><br><span class="line">                msg.setAsynchronous(<span class="keyword">true</span>);</span><br><span class="line">                mHandler.sendMessageAtFrontOfQueue(msg);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">final</span> <span class="keyword">long</span> nextFrameTime = Math.max(</span><br><span class="line">                    mLastFrameTimeNanos / TimeUtils.NANOS_PER_MS + sFrameDelay, now);</span><br><span class="line">            <span class="keyword">if</span> (DEBUG_FRAMES) &#123;</span><br><span class="line">                Log.d(TAG, <span class="string">"Scheduling next frame in "</span> + (nextFrameTime - now) + <span class="string">" ms."</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            Message msg = mHandler.obtainMessage(MSG_DO_FRAME);</span><br><span class="line">            msg.setAsynchronous(<span class="keyword">true</span>);</span><br><span class="line">            mHandler.sendMessageAtTime(msg, nextFrameTime);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">```    </span><br><span class="line"></span><br><span class="line">这个USE_VSYNC代表我们系统使用vsync信号进行屏幕信号的同步，这个方法是在我们的ui线程操作的，所以会发送MSG_DO_SCHEDULE_VSYNC请求vsync信号。这里的mHandler是一个FrameHandler</span><br><span class="line"></span><br><span class="line">```java</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">FrameHandler</span> <span class="keyword">extends</span> <span class="title">Handler</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">FrameHandler</span><span class="params">(Looper looper)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>(looper);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handleMessage</span><span class="params">(Message msg)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">switch</span> (msg.what) &#123;</span><br><span class="line">            <span class="keyword">case</span> MSG_DO_FRAME:</span><br><span class="line">                doFrame(System.nanoTime(), <span class="number">0</span>);</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">case</span> MSG_DO_SCHEDULE_VSYNC:</span><br><span class="line">                doScheduleVsync();<span class="comment">//请求vsync信号</span></span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">case</span> MSG_DO_SCHEDULE_CALLBACK:</span><br><span class="line">                doScheduleCallback(msg.arg1);</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>接着调用doScheduleVsync</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">doScheduleVsync</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (mLock) &#123;</span><br><span class="line">        <span class="keyword">if</span> (mFrameScheduled) &#123;</span><br><span class="line">            scheduleVsyncLocked();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">scheduleVsyncLocked</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    mDisplayEventReceiver.scheduleVsync();<span class="comment">//请求vsync信号</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里的mDisplayEventReceiver是一个FrameDisplayEventReceiver对象，它继承了DisplayEventReceiver，其中实现了其方法onVsync，这个方法就是当onVsync信号到达时的回调方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//垂直信号到达</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onVsync</span><span class="params">(<span class="keyword">long</span> timestampNanos, <span class="keyword">int</span> builtInDisplayId, <span class="keyword">int</span> frame)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// Ignore vsync from secondary display.</span></span><br><span class="line">    <span class="comment">// This can be problematic because the call to scheduleVsync() is a one-shot.</span></span><br><span class="line">    <span class="comment">// We need to ensure that we will still receive the vsync from the primary</span></span><br><span class="line">    <span class="comment">// display which is the one we really care about.  Ideally we should schedule</span></span><br><span class="line">    <span class="comment">// vsync for a particular display.</span></span><br><span class="line">    <span class="comment">// At this time Surface Flinger won't send us vsyncs for secondary displays</span></span><br><span class="line">    <span class="comment">// but that could change in the future so let's log a message to help us remember</span></span><br><span class="line">    <span class="comment">// that we need to fix this.</span></span><br><span class="line">    <span class="comment">//并不是sf内置的display</span></span><br><span class="line">    <span class="keyword">if</span> (builtInDisplayId != SurfaceControl.BUILT_IN_DISPLAY_ID_MAIN) &#123;</span><br><span class="line">        Log.d(TAG, <span class="string">"Received vsync from secondary display, but we don't support "</span></span><br><span class="line">                + <span class="string">"this case yet.  Choreographer needs a way to explicitly request "</span></span><br><span class="line">                + <span class="string">"vsync for a specific display to ensure it doesn't lose track "</span></span><br><span class="line">                + <span class="string">"of its scheduled vsync."</span>);</span><br><span class="line">        scheduleVsync();</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Post the vsync event to the Handler.</span></span><br><span class="line">    <span class="comment">// The idea is to prevent incoming vsync events from completely starving</span></span><br><span class="line">    <span class="comment">// the message queue.  If there are no messages in the queue with timestamps</span></span><br><span class="line">    <span class="comment">// earlier than the frame time, then the vsync event will be processed immediately.</span></span><br><span class="line">    <span class="comment">// Otherwise, messages that predate the vsync event will be handled first.</span></span><br><span class="line">    <span class="keyword">long</span> now = System.nanoTime();</span><br><span class="line">    <span class="keyword">if</span> (timestampNanos &gt; now) &#123;</span><br><span class="line">        Log.w(TAG, <span class="string">"Frame time is "</span> + ((timestampNanos - now) * <span class="number">0.000001f</span>)</span><br><span class="line">                + <span class="string">" ms in the future!  Check that graphics HAL is generating vsync "</span></span><br><span class="line">                + <span class="string">"timestamps using the correct timebase."</span>);</span><br><span class="line">        timestampNanos = now;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (mHavePendingVsync) &#123;</span><br><span class="line">        Log.w(TAG, <span class="string">"Already have a pending vsync event.  There should only be "</span></span><br><span class="line">                + <span class="string">"one at a time."</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        mHavePendingVsync = <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    mTimestampNanos = timestampNanos;</span><br><span class="line">    mFrame = frame;</span><br><span class="line">    Message msg = Message.obtain(mHandler, <span class="keyword">this</span>);</span><br><span class="line">    msg.setAsynchronous(<span class="keyword">true</span>);</span><br><span class="line">    mHandler.sendMessageAtTime(msg, timestampNanos / TimeUtils.NANOS_PER_MS);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    mHavePendingVsync = <span class="keyword">false</span>;</span><br><span class="line">    doFrame(mTimestampNanos, mFrame);<span class="comment">//垂直信号到来触发</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>垂直信号vsync到来后会触发doFrame，在这个方法里面会进行我们的回调，即mTraversalRunnable。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">doFrame</span><span class="params">(<span class="keyword">long</span> frameTimeNanos, <span class="keyword">int</span> frame)</span> </span>&#123;</span><br><span class="line">    …… </span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        Trace.traceBegin(Trace.TRACE_TAG_VIEW, <span class="string">"Choreographer#doFrame"</span>);</span><br><span class="line">        AnimationUtils.lockAnimationClock(frameTimeNanos / TimeUtils.NANOS_PER_MS);</span><br><span class="line"></span><br><span class="line">        mFrameInfo.markInputHandlingStart();</span><br><span class="line">        doCallbacks(Choreographer.CALLBACK_INPUT, frameTimeNanos);<span class="comment">//回调输入事件的相关回调</span></span><br><span class="line"></span><br><span class="line">        mFrameInfo.markAnimationsStart();</span><br><span class="line">        doCallbacks(Choreographer.CALLBACK_ANIMATION, frameTimeNanos);<span class="comment">//回调动画相关的回调</span></span><br><span class="line"></span><br><span class="line">        mFrameInfo.markPerformTraversalsStart();</span><br><span class="line">        doCallbacks(Choreographer.CALLBACK_TRAVERSAL, frameTimeNanos);<span class="comment">//回调绘制相关的回调</span></span><br><span class="line"></span><br><span class="line">        doCallbacks(Choreographer.CALLBACK_COMMIT, frameTimeNanos);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        AnimationUtils.unlockAnimationClock();</span><br><span class="line">        Trace.traceEnd(Trace.TRACE_TAG_VIEW);</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">doCallbacks</span><span class="params">(<span class="keyword">int</span> callbackType, <span class="keyword">long</span> frameTimeNanos)</span> </span>&#123;</span><br><span class="line">        CallbackRecord callbacks;</span><br><span class="line">    <span class="keyword">synchronized</span> (mLock) &#123;</span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> now = System.nanoTime();</span><br><span class="line">        callbacks = mCallbackQueues[callbackType].extractDueCallbacksLocked(</span><br><span class="line">                now / TimeUtils.NANOS_PER_MS);<span class="comment">//获取相关类型的回调</span></span><br><span class="line">        <span class="keyword">if</span> (callbacks == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        mCallbacksRunning = <span class="keyword">true</span>;</span><br><span class="line">……</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        Trace.traceBegin(Trace.TRACE_TAG_VIEW, CALLBACK_TRACE_TITLES[callbackType]);</span><br><span class="line">        <span class="keyword">for</span> (CallbackRecord c = callbacks; c != <span class="keyword">null</span>; c = c.next) &#123;</span><br><span class="line">            <span class="keyword">if</span> (DEBUG_FRAMES) &#123;</span><br><span class="line">                Log.d(TAG, <span class="string">"RunCallback: type="</span> + callbackType</span><br><span class="line">                        + <span class="string">", action="</span> + c.action + <span class="string">", token="</span> + c.token</span><br><span class="line">                        + <span class="string">", latencyMillis="</span> + (SystemClock.uptimeMillis() - c.dueTime));</span><br><span class="line">            &#125;</span><br><span class="line">            c.run(frameTimeNanos);<span class="comment">//调用回调</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里会根据类型从队列中取出相应的回调进行调用。这个就是上层对于vsync的处理。接下来我们看看底层的vsync信号是如何传递给Choreographer的。这就需要看看FrameDisplayEventReceiver的父类DisplayEventReceiver，这个DisplayEventReceiver会通过native层进行初始化，native层通过它的成员方法dispatchVsync将vsync信号报告给上层，即调用onVsync。我们先看其构造方法:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DisplayEventReceiver</span><span class="params">(Looper looper, <span class="keyword">int</span> vsyncSource)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (looper == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"looper must not be null"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    mMessageQueue = looper.getQueue();</span><br><span class="line">    mReceiverPtr = nativeInit(<span class="keyword">new</span> WeakReference&lt;DisplayEventReceiver&gt;(<span class="keyword">this</span>), mMessageQueue,</span><br><span class="line">            vsyncSource);<span class="comment">//初始化接收器</span></span><br><span class="line"></span><br><span class="line">    mCloseGuard.open(<span class="string">"dispose"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其构造方法是调用nativeInit进行初始化的，并将当前对象this作为一个接收器传递给底层。我们看看这个方法</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">frameworks/base/core/jni/android_view_DisplayEventReceiver.cpp</span><br><span class="line"><span class="comment">//注册显示事件接收器 receiverWeak即DisplayEventReceiver</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> jlong <span class="title">nativeInit</span><span class="params">(JNIEnv* env, jclass clazz, jobject receiverWeak,</span></span></span><br><span class="line"><span class="function"><span class="params">        jobject messageQueueObj, jint vsyncSource)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//这个messageQueue是通过ui线程的Looper构造的</span></span><br><span class="line">    sp&lt;MessageQueue&gt; messageQueue = android_os_MessageQueue_getMessageQueue(env, messageQueueObj);</span><br><span class="line">    <span class="keyword">if</span> (messageQueue == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        jniThrowRuntimeException(env, <span class="string">"MessageQueue is not initialized."</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    sp&lt;NativeDisplayEventReceiver&gt; receiver = <span class="keyword">new</span> NativeDisplayEventReceiver(env,</span><br><span class="line">            receiverWeak, messageQueue, vsyncSource);<span class="comment">//创建本地接收器</span></span><br><span class="line">    <span class="keyword">status_t</span> status = receiver-&gt;initialize();<span class="comment">//初始化native的接受器</span></span><br><span class="line">    <span class="keyword">if</span> (status) &#123;</span><br><span class="line">        String8 message;</span><br><span class="line">        message.appendFormat(<span class="string">"Failed to initialize display event receiver.  status=%d"</span>, status);</span><br><span class="line">        jniThrowRuntimeException(env, message.<span class="built_in">string</span>());</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    receiver-&gt;incStrong(gDisplayEventReceiverClassInfo.clazz); <span class="comment">// retain a reference for the object</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">reinterpret_cast</span>&lt;jlong&gt;(receiver.get());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在初始化方法中会创建本地的接受器对象，它同时是用我们传递的java层的接受器对象构造的，构造完成后即进行初始化。这个NativeDisplayEventReceiver的定义如下</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//native的显示事件接受器</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">NativeDisplayEventReceiver</span> :</span> <span class="keyword">public</span> DisplayEventDispatcher &#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    NativeDisplayEventReceiver(JNIEnv* env,</span><br><span class="line">            jobject receiverWeak, <span class="keyword">const</span> sp&lt;MessageQueue&gt;&amp; messageQueue, jint vsyncSource);</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">dispose</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">protected</span>:</span><br><span class="line">    <span class="keyword">virtual</span> ~NativeDisplayEventReceiver();</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    jobject mReceiverWeakGlobal;<span class="comment">//java层的接收器对象</span></span><br><span class="line">    sp&lt;MessageQueue&gt; mMessageQueue;</span><br><span class="line">    DisplayEventReceiver mReceiver;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">dispatchVsync</span><span class="params">(<span class="keyword">nsecs_t</span> timestamp, <span class="keyword">int32_t</span> id, <span class="keyword">uint32_t</span> count)</span></span>;</span><br><span class="line">    <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">dispatchHotplug</span><span class="params">(<span class="keyword">nsecs_t</span> timestamp, <span class="keyword">int32_t</span> id, <span class="keyword">bool</span> connected)</span></span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>NativeDisplayEventReceiver继承自DisplayEventDispatcher，而DisplayEventDispatcher又实现了LooperCallback的接口handleEvent，这个方法是Looper的事件回调，也就是当Looper接受到消息后会对其进行调用，那么这个DisplayEventDispatcher就是负责进行消息事件的转发的。后面我们看看它是如何将vsync信号转发的。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//初始化receiver</span></span><br><span class="line"><span class="keyword">status_t</span> DisplayEventDispatcher::initialize() &#123;</span><br><span class="line">    <span class="keyword">status_t</span> result = mReceiver.initCheck();</span><br><span class="line">    <span class="keyword">if</span> (result) &#123;</span><br><span class="line">        ALOGW(<span class="string">"Failed to initialize display event receiver, status=%d"</span>, result);</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> rc = mLooper-&gt;addFd(mReceiver.getFd(), <span class="number">0</span>, Looper::EVENT_INPUT,</span><br><span class="line">            <span class="keyword">this</span>, <span class="literal">NULL</span>);<span class="comment">//添加事件侦听,这里的this代表注册的是一个LooperCallback,</span></span><br><span class="line">                        <span class="comment">//当事件到达后会调用其handleEvent方法,这个可以具体参见Looper的实现</span></span><br><span class="line">    <span class="keyword">if</span> (rc &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> UNKNOWN_ERROR;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里的addFd将其注册到为Looper的事件回调，注意这里第四个参数this，因为DisplayEventDispatcher是继承LooperCallback的。这样当事件到来后会调用handleEvent。</p>
+<p>还有，在NativeDisplayEventReceiver的内部持有一个DisplayEventReceiver对象，这个对象比较重要，它是负责和Sf打交道的。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">DisplayEventReceiver::DisplayEventReceiver(ISurfaceComposer::VsyncSource vsyncSource) &#123;</span><br><span class="line">    sp&lt;ISurfaceComposer&gt; sf(ComposerService::getComposerService());</span><br><span class="line">    <span class="keyword">if</span> (sf != <span class="literal">NULL</span>) &#123;</span><br><span class="line">    <span class="comment">//通过sf建立连接，这里就应该很熟悉了，这个连接创建好后在第一次引用时会去注册到EventThread中</span></span><br><span class="line">        mEventConnection = sf-&gt;createDisplayEventConnection(vsyncSource);</span><br><span class="line">        <span class="keyword">if</span> (mEventConnection != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            mDataChannel = <span class="built_in">std</span>::make_unique&lt;gui::BitTube&gt;();</span><br><span class="line">            mEventConnection-&gt;stealReceiveChannel(mDataChannel.get());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">sp&lt;IDisplayEventConnection&gt; SurfaceFlinger::createDisplayEventConnection(</span><br><span class="line">        ISurfaceComposer::VsyncSource vsyncSource) &#123;</span><br><span class="line">    <span class="keyword">if</span> (vsyncSource == eVsyncSourceSurfaceFlinger) &#123;</span><br><span class="line">        <span class="keyword">return</span> mSFEventThread-&gt;createEventConnection();</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;<span class="comment">//如果时app端的就走这里</span></span><br><span class="line">        <span class="keyword">return</span> mEventThread-&gt;createEventConnection();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>刚刚说到DisplayEventReceiver是和Sf打交道的， 它和NativeDisplayEventReceiver是同时创建的。在其构造方法中首先通过sf的createDisplayEventConnection创建一个连接对象即Connection对象，mEventThread是管理绘图延时对象的vsync信号处理，它是一个EventThread。Connection就是由它创建的。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sp&lt;EventThread::Connection&gt; EventThread::createEventConnection() <span class="keyword">const</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> Connection(<span class="keyword">const_cast</span>&lt;EventThread*&gt;(<span class="keyword">this</span>));<span class="comment">//创建一个新的连接，这个连接在第一个被引用时会去进行注册</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个connection在第一次被引用时会进行注册，即将其添加到mEventThread的连接队列，在vsync消息到来时调用其postEvent方法对事件进行转发。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> EventThread::Connection::onFirstRef() &#123;</span><br><span class="line">    <span class="comment">// <span class="doctag">NOTE:</span> mEventThread doesn't hold a strong reference on us</span></span><br><span class="line">    mEventThread-&gt;registerDisplayEventConnection(<span class="keyword">this</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//注册创建的连接，实际上时将创建的连接添加到监听队列，并通知等待的线程</span></span><br><span class="line"><span class="keyword">status_t</span> EventThread::registerDisplayEventConnection(</span><br><span class="line">        <span class="keyword">const</span> sp&lt;EventThread::Connection&gt;&amp; connection) &#123;</span><br><span class="line">    Mutex::Autolock _l(mLock);</span><br><span class="line">    mDisplayEventConnections.add(connection);<span class="comment">//添加到连接队列中</span></span><br><span class="line">    mCondition.broadcast();<span class="comment">//唤醒等待的线程</span></span><br><span class="line">    <span class="keyword">return</span> NO_ERROR;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">bool</span> EventThread::threadLoop() &#123;</span><br><span class="line">    DisplayEventReceiver::Event event;</span><br><span class="line">    Vector&lt; sp&lt;EventThread::Connection&gt; &gt; signalConnections;</span><br><span class="line">    signalConnections = waitForEvent(&amp;event);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// dispatch events to listeners...</span></span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">size_t</span> count = signalConnections.size();</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">size_t</span> i=<span class="number">0</span> ; i&lt;count ; i++) &#123;</span><br><span class="line">        <span class="keyword">const</span> sp&lt;Connection&gt;&amp; conn(signalConnections[i]);</span><br><span class="line">        <span class="comment">// now see if we still need to report this event</span></span><br><span class="line">        <span class="keyword">status_t</span> err = conn-&gt;postEvent(event);<span class="comment">//post事件</span></span><br><span class="line">	……</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">status_t</span> EventThread::Connection::postEvent(</span><br><span class="line">        <span class="keyword">const</span> DisplayEventReceiver::Event&amp; event) &#123;</span><br><span class="line">    <span class="keyword">ssize_t</span> size = DisplayEventReceiver::sendEvents(&amp;mChannel, &amp;event, <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">return</span> size &lt; <span class="number">0</span> ? <span class="keyword">status_t</span>(size) : <span class="keyword">status_t</span>(NO_ERROR);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>postEvent实际上会调用DisplayEventReceiver的setEvents方法，这样会触发getEvents的回调从而通过DisplayEventDispatcher的handleEvent回调方法。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">ssize_t</span> DisplayEventReceiver::sendEvents(gui::BitTube* dataChannel,</span><br><span class="line">        Event <span class="keyword">const</span>* events, <span class="keyword">size_t</span> count)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">return</span> gui::BitTube::sendObjects(dataChannel, events, count);<span class="comment">//发送接受到的事件</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> DisplayEventDispatcher::handleEvent(<span class="keyword">int</span>, <span class="keyword">int</span> events, <span class="keyword">void</span>*)&#123;</span><br><span class="line">    ……</span><br><span class="line">    <span class="comment">// Drain all pending events, keep the last vsync.</span></span><br><span class="line">    <span class="keyword">nsecs_t</span> vsyncTimestamp;</span><br><span class="line">    <span class="keyword">int32_t</span> vsyncDisplayId;</span><br><span class="line">    <span class="keyword">uint32_t</span> vsyncCount;</span><br><span class="line">    <span class="keyword">if</span> (processPendingEvents(&amp;vsyncTimestamp, &amp;vsyncDisplayId, &amp;vsyncCount)) &#123;<span class="comment">//丢弃所有的等待事件，只保留上次的vsync信号事件</span></span><br><span class="line">        ALOGV(<span class="string">"dispatcher %p ~ Vsync pulse: timestamp=%"</span> PRId64 <span class="string">", id=%d, count=%d"</span>,</span><br><span class="line">                <span class="keyword">this</span>, ns2ms(vsyncTimestamp), vsyncDisplayId, vsyncCount);</span><br><span class="line">        mWaitingForVsync = <span class="literal">false</span>;</span><br><span class="line">        dispatchVsync(vsyncTimestamp, vsyncDisplayId, vsyncCount);<span class="comment">//分派vsync信号</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>; <span class="comment">// keep the callback</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">bool</span> DisplayEventDispatcher::processPendingEvents(</span><br><span class="line">        <span class="keyword">nsecs_t</span>* outTimestamp, <span class="keyword">int32_t</span>* outId, <span class="keyword">uint32_t</span>* outCount) &#123;</span><br><span class="line">    <span class="keyword">bool</span> gotVsync = <span class="literal">false</span>;</span><br><span class="line">    DisplayEventReceiver::Event buf[EVENT_BUFFER_SIZE];</span><br><span class="line">    <span class="keyword">ssize_t</span> n;</span><br><span class="line">    <span class="keyword">while</span> ((n = mReceiver.getEvents(buf, EVENT_BUFFER_SIZE)) &gt; <span class="number">0</span>) &#123;<span class="comment">//等待事件到来</span></span><br><span class="line">        ALOGV(<span class="string">"dispatcher %p ~ Read %d events."</span>, <span class="keyword">this</span>, <span class="keyword">int</span>(n));</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">ssize_t</span> i = <span class="number">0</span>; i &lt; n; i++) &#123;</span><br><span class="line">            <span class="keyword">const</span> DisplayEventReceiver::Event&amp; ev = buf[i];</span><br><span class="line">            <span class="keyword">switch</span> (ev.header.type) &#123;</span><br><span class="line">            <span class="keyword">case</span> DisplayEventReceiver::DISPLAY_EVENT_VSYNC:</span><br><span class="line">                <span class="comment">// Later vsync events will just overwrite the info from earlier</span></span><br><span class="line">                <span class="comment">// ones. That's fine, we only care about the most recent.</span></span><br><span class="line">                gotVsync = <span class="literal">true</span>;</span><br><span class="line">                *outTimestamp = ev.header.timestamp;<span class="comment">//timestamp</span></span><br><span class="line">                *outId = ev.header.id;<span class="comment">//id</span></span><br><span class="line">                *outCount = ev.vsync.count;<span class="comment">//count</span></span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">case</span> DisplayEventReceiver::DISPLAY_EVENT_HOTPLUG:</span><br><span class="line">                dispatchHotplug(ev.header.timestamp, ev.header.id, ev.hotplug.connected);</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> gotVsync;</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> NativeDisplayEventReceiver::dispatchVsync(<span class="keyword">nsecs_t</span> timestamp, <span class="keyword">int32_t</span> id, <span class="keyword">uint32_t</span> count) &#123;</span><br><span class="line">    JNIEnv* env = AndroidRuntime::getJNIEnv();</span><br><span class="line"></span><br><span class="line">    ScopedLocalRef&lt;jobject&gt; receiverObj(env, jniGetReferent(env, mReceiverWeakGlobal));</span><br><span class="line">    <span class="keyword">if</span> (receiverObj.get()) &#123;</span><br><span class="line">        ALOGV(<span class="string">"receiver %p ~ Invoking vsync handler."</span>, <span class="keyword">this</span>);</span><br><span class="line">        env-&gt;CallVoidMethod(receiverObj.get(),</span><br><span class="line">                gDisplayEventReceiverClassInfo.dispatchVsync, timestamp, id, count);</span><br><span class="line">        ALOGV(<span class="string">"receiver %p ~ Returned from vsync handler."</span>, <span class="keyword">this</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    mMessageQueue-&gt;raiseAndClearException(env, <span class="string">"dispatchVsync"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>最终调用NativeDisplayEventReceiver的dispatchVsync回调给java层的dispatchVsync，这样vsync信号就传递给上层应用了。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpayimg.png" alt="esli 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipayimg.png" alt="esli 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Android/" rel="tag"># Android</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/[object Object]/aosp-surfaceflinger-vsync-src/" rel="next" title="GUI系统之SurfaceFlinger之VSYNC信号的产生和处理(二)">
+                <i class="fa fa-chevron-left"></i> GUI系统之SurfaceFlinger之VSYNC信号的产生和处理(二)
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/[object Object]/aosp-surfaceflinger-buffer-src/" rel="prev" title="SurfaceFlinger之绘图缓冲区">
+                SurfaceFlinger之绘图缓冲区 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/uploads/avatar.png"
+                alt="esli" />
+            
+              <p class="site-author-name" itemprop="name">esli</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">61</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">esli</span>
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("jBNLE1XrpdNfIpNnvp02BNFi-gzGzoHsz", "1KETbc2T1LA8C2oPKVwpbzVm");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

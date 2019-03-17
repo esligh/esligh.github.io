@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Android," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="Android提供了几种基本的动画：  帧动画 补间动画 属性动画  其中属性动画和补间动画比较常用，它们最大的区别在于补间动画并不会真正的改变View的属性，什么意思呢？比如通过补间动画将页面中的Button从左边移动到右边一段距离，如果此时点击Button，它不会对点击事件做出响应，这是因为button的作用区域(点击该区域依然可以触发click事件)依然在原来的位置，这是补间动画将其绘制在其">
+<meta name="keywords" content="Android">
+<meta property="og:type" content="article">
+<meta property="og:title" content="android Tween动画原理">
+<meta property="og:url" content="http://esligh.github.io/[object Object]/aosp-animation-src/index.html">
+<meta property="og:site_name" content="esli&#39;s Blog">
+<meta property="og:description" content="Android提供了几种基本的动画：  帧动画 补间动画 属性动画  其中属性动画和补间动画比较常用，它们最大的区别在于补间动画并不会真正的改变View的属性，什么意思呢？比如通过补间动画将页面中的Button从左边移动到右边一段距离，如果此时点击Button，它不会对点击事件做出响应，这是因为button的作用区域(点击该区域依然可以触发click事件)依然在原来的位置，这是补间动画将其绘制在其">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-03-16T07:59:56.159Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="android Tween动画原理">
+<meta name="twitter:description" content="Android提供了几种基本的动画：  帧动画 补间动画 属性动画  其中属性动画和补间动画比较常用，它们最大的区别在于补间动画并不会真正的改变View的属性，什么意思呢？比如通过补间动画将页面中的Button从左边移动到右边一段距离，如果此时点击Button，它不会对点击事件做出响应，这是因为button的作用区域(点击该区域依然可以触发click事件)依然在原来的位置，这是补间动画将其绘制在其">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://esligh.github.io/[object Object]/aosp-animation-src/"/>
+
+
+
+
+
+  <title>android Tween动画原理 | esli's Blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">esli's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">day day up</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://esligh.github.io/[object Object]/aosp-animation-src/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="esli">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="esli's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">android Tween动画原理</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-03-12T21:41:50+08:00">
+                2018-03-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AOSP/" itemprop="url" rel="index">
+                    <span itemprop="name">AOSP</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+             <span id="/[object Object]/aosp-animation-src/" class="leancloud_visitors" data-flag-title="android Tween动画原理">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Android提供了几种基本的动画：</p>
+<ol>
+<li>帧动画</li>
+<li>补间动画</li>
+<li>属性动画</li>
+</ol>
+<p>其中属性动画和补间动画比较常用，它们最大的区别在于补间动画并不会真正的改变View的属性，什么意思呢？比如通过补间动画将页面中的Button从左边移动到右边一段距离，如果此时点击Button，它不会对点击事件做出响应，这是因为button的作用区域(点击该区域依然可以触发click事件)依然在原来的位置，这是补间动画将其绘制在其原来的右边罢了。</p>
+<p>本篇将首先从源码的角度对补间动画进行分析，属性动画会在下一篇中做介绍，至于补间动画的基本用法，这里就不多做介绍了。<br>
+在我们分析之前我们先提两个问题：</p>
+<ol>
+<li>动画是如何进行绘制的？</li>
+<li>动画是怎么计算每一帧的画面的？即某一个时刻View的位置的？</li>
+</ol>
+<p>带着这两个问题，我们开始分析补间动画，这里首先从startAnimation开始分析，这是动画开始执行的方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//frameworks\base\core\java\android\view\View.java</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">startAnimation</span><span class="params">(Animation animation)</span> </span>&#123;</span><br><span class="line">    animation.setStartTime(Animation.START_ON_FIRST_FRAME);</span><br><span class="line">    setAnimation(animation);</span><br><span class="line">    invalidateParentCaches();</span><br><span class="line">    invalidate(<span class="keyword">true</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>startAnimation中主要做了两件事，第一个就是通过setAnimation设置当前View的动画，然后通过invalidate重绘制View。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setAnimation</span><span class="params">(Animation animation)</span> </span>&#123;</span><br><span class="line">    mCurrentAnimation = animation;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (animation != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="comment">// If the screen is off assume the animation start time is now instead of</span></span><br><span class="line">        <span class="comment">// the next frame we draw. Keeping the START_ON_FIRST_FRAME start time</span></span><br><span class="line">        <span class="comment">// would cause the animation to start when the screen turns back on</span></span><br><span class="line">        <span class="keyword">if</span> (mAttachInfo != <span class="keyword">null</span> &amp;&amp; !mAttachInfo.mScreenOn &amp;&amp;</span><br><span class="line">                animation.getStartTime() == Animation.START_ON_FIRST_FRAME) &#123;</span><br><span class="line">            animation.setStartTime(AnimationUtils.currentAnimationTimeMillis());</span><br><span class="line">        &#125;</span><br><span class="line">        animation.reset();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>setAnimation将animation保存在View的mCurrentAnimation以备使用。<br>
+接下来就是通过invalidate来重绘制View，这个我在专门的一篇中有所介绍，这里我简单说一下， invalidate实际上会从当前发起绘制的view开始向上寻找父View(ViewParent)，然后和其父View计算总的脏区域，父View再计算根据得到的脏区域计算和其父View的脏区域，这个操作一直到ViewRootImpl，即View层级树的顶部管理者，它会根据计算的脏区域触发Draw操作。也就是会走到performTraversals中，这个流程想必大家都清楚了。</p>
+<p>View在绘制完自身的内容后，会通过dispatchDrawl来绘制其子View，动画也就是在此时进行绘制的，</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// frameworks/base/core/java/android/view/ViewGroup.java</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">dispatchDraw</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> count = mChildrenCount;<span class="comment">//子view的个数</span></span><br><span class="line">    <span class="keyword">final</span> View[] children = mChildren;<span class="comment">//子view节点</span></span><br><span class="line">    <span class="keyword">int</span> flags = mGroupFlags;</span><br><span class="line"></span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">boolean</span> more = <span class="keyword">false</span>;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">long</span> drawingTime = getDrawingTime();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ((flags &amp; FLAG_USE_CHILD_DRAWING_ORDER) == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">            <span class="keyword">final</span> View child = children[i];</span><br><span class="line">            <span class="keyword">if</span> ((child.mViewFlags &amp; VISIBILITY_MASK) == VISIBLE || child.getAnimation() != <span class="keyword">null</span>) &#123;</span><br><span class="line">                more |= drawChild(canvas, child, drawingTime);<span class="comment">//绘制子view</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">            <span class="keyword">final</span> View child = children[getChildDrawingOrder(count, i)];</span><br><span class="line">            <span class="keyword">if</span> ((child.mViewFlags &amp; VISIBILITY_MASK) == VISIBLE || child.getAnimation() != <span class="keyword">null</span>) &#123;</span><br><span class="line">                more |= drawChild(canvas, child, drawingTime);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">   ……</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"> <span class="function"><span class="keyword">protected</span> <span class="keyword">boolean</span> <span class="title">drawChild</span><span class="params">(Canvas canvas, View child, <span class="keyword">long</span> drawingTime)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> child.draw(canvas, <span class="keyword">this</span>, drawingTime);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>dispatchDraw中会通过遍历孩子节点并未其调用drawChild来绘制子View</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">draw</span><span class="params">(Canvas canvas, ViewGroup parent, <span class="keyword">long</span> drawingTime)</span> </span>&#123;</span><br><span class="line">    ……</span><br><span class="line">    Transformation transformToApply = <span class="keyword">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> Animation a = getAnimation();</span><br><span class="line">    <span class="keyword">if</span> (a != <span class="keyword">null</span>) &#123;</span><br><span class="line">        more = drawAnimation(parent, drawingTime, a, scalingRequired);</span><br><span class="line">        concatMatrix = a.willChangeTransformationMatrix();</span><br><span class="line">        <span class="keyword">if</span> (concatMatrix) &#123;</span><br><span class="line">            mPrivateFlags3 |= PFLAG3_VIEW_IS_ANIMATING_TRANSFORM;</span><br><span class="line">        &#125;</span><br><span class="line">        transformToApply = parent.getChildTransformation();</span><br><span class="line">    &#125; </span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">if</span> (transformToApply != <span class="keyword">null</span> || alpha &lt; <span class="number">1</span> || !hasIdentityMatrix() ||</span><br><span class="line">        (mPrivateFlags3&amp; PFLAG3_VIEW_IS_ANIMATING_ALPHA) == PFLAG3_VIEW_IS_ANIMATING_ALPHA) &#123;</span><br><span class="line">        <span class="keyword">if</span> (transformToApply != <span class="keyword">null</span> || !childHasIdentityMatrix) &#123;</span><br><span class="line">            <span class="keyword">int</span> transX = <span class="number">0</span>;</span><br><span class="line">            <span class="keyword">int</span> transY = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (offsetForScroll) &#123;</span><br><span class="line">                transX = -sx;</span><br><span class="line">                transY = -sy;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//动画的Transformation不为null</span></span><br><span class="line">            <span class="keyword">if</span> (transformToApply != <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="keyword">if</span> (concatMatrix) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (useDisplayListProperties) &#123;</span><br><span class="line">                        displayList.setAnimationMatrix(transformToApply.getMatrix());</span><br><span class="line">                    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                        <span class="comment">// Undo the scroll translation, apply the</span></span><br><span class="line">                        <span class="comment">// transformation matrix,</span></span><br><span class="line">                        <span class="comment">// then redo the scroll translate to get the correct</span></span><br><span class="line">                        <span class="comment">// result.</span></span><br><span class="line">                        canvas.translate(-transX, -transY);</span><br><span class="line">                        canvas.concat(transformToApply.getMatrix());</span><br><span class="line">                        canvas.translate(transX, transY);</span><br><span class="line">                    &#125;</span><br><span class="line">                    parent.mGroupFlags |= ViewGroup.FLAG_CLEAR_TRANSFORMATION;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="comment">//获取Transformation的alpha值</span></span><br><span class="line">                <span class="keyword">float</span> transformAlpha = transformToApply.getAlpha();</span><br><span class="line">                <span class="keyword">if</span> (transformAlpha &lt; <span class="number">1</span>) &#123;</span><br><span class="line">                    alpha *= transformAlpha;</span><br><span class="line">                    parent.mGroupFlags |= ViewGroup.FLAG_CLEAR_TRANSFORMATION;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (!childHasIdentityMatrix &amp;&amp; !useDisplayListProperties) &#123;</span><br><span class="line">                canvas.translate(-transX, -transY);</span><br><span class="line">                canvas.concat(getMatrix());</span><br><span class="line">                canvas.translate(transX, transY);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> more;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>View的这个draw方法同draw(Canvas)的那个方法不同，它只是被ViewGroupd的drawChild调用，在这个方法里，我们可以看到绘制动画的方法，首先通过getAnimation获取到我们在startAnimation中设置的动画，然后交给drawAnimation计算动画的Transformation，它被存放在transformToApply中，如果有动画执行那么transformToApply肯定不为null,这里concatMatrix未true表示动画会改变变换矩阵，比如ScaleAnimation会改变变换的Matrix，而AlpahAnimation不会改变，为true这种情况会对canvas做一些列变换。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">///frameworks/base/core/java/android/view/View.java</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">boolean</span> <span class="title">drawAnimation</span><span class="params">(ViewGroup parent, <span class="keyword">long</span> drawingTime,</span></span></span><br><span class="line"><span class="function"><span class="params">        Animation a, <span class="keyword">boolean</span> scalingRequired)</span> </span>&#123;</span><br><span class="line">    Transformation invalidationTransform;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> flags = parent.mGroupFlags;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> initialized = a.isInitialized();</span><br><span class="line">    <span class="keyword">if</span> (!initialized) &#123;</span><br><span class="line">        a.initialize(mRight - mLeft, mBottom - mTop, parent.getWidth(), parent.getHeight());</span><br><span class="line">        a.initializeInvalidateRegion(<span class="number">0</span>, <span class="number">0</span>, mRight - mLeft, mBottom - mTop);</span><br><span class="line">        <span class="keyword">if</span> (mAttachInfo != <span class="keyword">null</span>)</span><br><span class="line">            a.setListenerHandler(mAttachInfo.mHandler);</span><br><span class="line">        onAnimationStart();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> Transformation t = parent.getChildTransformation();</span><br><span class="line">    <span class="keyword">boolean</span> more = a.getTransformation(drawingTime, t, <span class="number">1f</span>);</span><br><span class="line">    <span class="keyword">if</span> (scalingRequired &amp;&amp; mAttachInfo.mApplicationScale != <span class="number">1f</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (parent.mInvalidationTransformation == <span class="keyword">null</span>) &#123;</span><br><span class="line">            parent.mInvalidationTransformation = <span class="keyword">new</span> Transformation();</span><br><span class="line">        &#125;</span><br><span class="line">        invalidationTransform = parent.mInvalidationTransformation;</span><br><span class="line">        a.getTransformation(drawingTime, invalidationTransform, <span class="number">1f</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        invalidationTransform = t;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (more) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!a.willChangeBounds()) &#123;</span><br><span class="line">            <span class="keyword">if</span> ((flags &amp; (ViewGroup.FLAG_OPTIMIZE_INVALIDATE</span><br><span class="line">                    | ViewGroup.FLAG_ANIMATION_DONE)) == ViewGroup.FLAG_OPTIMIZE_INVALIDATE) &#123;</span><br><span class="line">                parent.mGroupFlags |= ViewGroup.FLAG_INVALIDATE_REQUIRED;</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> ((flags &amp; ViewGroup.FLAG_INVALIDATE_REQUIRED) == <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="comment">// The child need to draw an animation, potentially</span></span><br><span class="line">                <span class="comment">// offscreen, so</span></span><br><span class="line">                <span class="comment">// make sure we do not cancel invalidate requests</span></span><br><span class="line">                parent.mPrivateFlags |= PFLAG_DRAW_ANIMATION;</span><br><span class="line">                parent.invalidate(mLeft, mTop, mRight, mBottom);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (parent.mInvalidateRegion == <span class="keyword">null</span>) &#123;</span><br><span class="line">                parent.mInvalidateRegion = <span class="keyword">new</span> RectF();</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">final</span> RectF region = parent.mInvalidateRegion;</span><br><span class="line">            a.getInvalidateRegion(<span class="number">0</span>, <span class="number">0</span>, mRight - mLeft, mBottom - mTop, region,</span><br><span class="line">                    invalidationTransform);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// The child need to draw an animation, potentially offscreen,</span></span><br><span class="line">            <span class="comment">// so</span></span><br><span class="line">            <span class="comment">// make sure we do not cancel invalidate requests</span></span><br><span class="line">            parent.mPrivateFlags |= PFLAG_DRAW_ANIMATION;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">final</span> <span class="keyword">int</span> left = mLeft + (<span class="keyword">int</span>) region.left;</span><br><span class="line">            <span class="keyword">final</span> <span class="keyword">int</span> top = mTop + (<span class="keyword">int</span>) region.top;</span><br><span class="line">            parent.invalidate(left, top, left + (<span class="keyword">int</span>) (region.width() + .<span class="number">5f</span>),</span><br><span class="line">                    top + (<span class="keyword">int</span>) (region.height() + .<span class="number">5f</span>));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> more;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个方法是补间动画的核心处理方法，它首先对动画进行初始化initialize，接下来通过getTransformation计算动画的相关信息，并返回more,代表动画是否完成。如果是true表示还有动画需要执行，那么在最后会通过parent的invalidate重新发起绘制进行下一帧的绘制。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">getTransformation</span><span class="params">(<span class="keyword">long</span> currentTime, Transformation outTransformation,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">float</span> scale)</span> </span>&#123;</span><br><span class="line">    mScaleFactor = scale;</span><br><span class="line">    <span class="keyword">return</span> getTransformation(currentTime, outTransformation);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">getTransformation</span><span class="params">(<span class="keyword">long</span> currentTime, Transformation outTransformation)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mStartTime == -<span class="number">1</span>) &#123;</span><br><span class="line">        mStartTime = currentTime;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">long</span> startOffset = getStartOffset();</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">long</span> duration = mDuration;</span><br><span class="line">    <span class="keyword">float</span> normalizedTime;</span><br><span class="line">    <span class="keyword">if</span> (duration != <span class="number">0</span>) &#123;</span><br><span class="line">        normalizedTime = ((<span class="keyword">float</span>) (currentTime - (mStartTime + startOffset))) /</span><br><span class="line">                (<span class="keyword">float</span>) duration;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// time is a step-change with a zero duration</span></span><br><span class="line">        normalizedTime = currentTime &lt; mStartTime ? <span class="number">0.0f</span> : <span class="number">1.0f</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> expired = normalizedTime &gt;= <span class="number">1.0f</span>;</span><br><span class="line">    mMore = !expired;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!mFillEnabled) normalizedTime = Math.max(Math.min(normalizedTime, <span class="number">1.0f</span>), <span class="number">0.0f</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ((normalizedTime &gt;= <span class="number">0.0f</span> || mFillBefore) &amp;&amp; (normalizedTime &lt;= <span class="number">1.0f</span> || mFillAfter)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!mStarted) &#123;</span><br><span class="line">            fireAnimationStart();</span><br><span class="line">            mStarted = <span class="keyword">true</span>;</span><br><span class="line">            <span class="keyword">if</span> (USE_CLOSEGUARD) &#123;</span><br><span class="line">                guard.open(<span class="string">"cancel or detach or getTransformation"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (mFillEnabled) normalizedTime = Math.max(Math.min(normalizedTime, <span class="number">1.0f</span>), <span class="number">0.0f</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (mCycleFlip) &#123;</span><br><span class="line">            normalizedTime = <span class="number">1.0f</span> - normalizedTime;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">float</span> interpolatedTime = mInterpolator.getInterpolation(normalizedTime);</span><br><span class="line">        applyTransformation(interpolatedTime, outTransformation);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (expired) &#123;</span><br><span class="line">        <span class="keyword">if</span> (mRepeatCount == mRepeated) &#123;</span><br><span class="line">            <span class="keyword">if</span> (!mEnded) &#123;</span><br><span class="line">                mEnded = <span class="keyword">true</span>;</span><br><span class="line">                guard.close();</span><br><span class="line">                fireAnimationEnd();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (mRepeatCount &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                mRepeated++;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (mRepeatMode == REVERSE) &#123;</span><br><span class="line">                mCycleFlip = !mCycleFlip;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            mStartTime = -<span class="number">1</span>;</span><br><span class="line">            mMore = <span class="keyword">true</span>;</span><br><span class="line"></span><br><span class="line">            fireAnimationRepeat();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!mMore &amp;&amp; mOneMoreTime) &#123;</span><br><span class="line">        mOneMoreTime = <span class="keyword">false</span>;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> mMore;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>getTransformation会根据当前时间和动画的持续时间执行时间流逝的进度，该进度随时间的流逝均匀的增加，如果该进度在0和1之间那么说明动画还在执行，如果动画此时还未开始会通过fireAnimationStart回调动画开始的回调，随后通过getInterpolation根据进度和插值器计算插值，插值和时间流逝的进度区别在于，插值可以根据数学模型生成任意的值，而时间流逝的进度值是客观不可变的。补间动画正是基于计算的插值来计算下一帧的动画的。计算完插值后通过applyTransformation来计算动画。我们可以看看TranslateAnimation是如何基于此计算动画的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">applyTransformation</span><span class="params">(<span class="keyword">float</span> interpolatedTime, Transformation t)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">float</span> dx = mFromXDelta;</span><br><span class="line">    <span class="keyword">float</span> dy = mFromYDelta;</span><br><span class="line">    <span class="keyword">if</span> (mFromXDelta != mToXDelta) &#123;</span><br><span class="line">        dx = mFromXDelta + ((mToXDelta - mFromXDelta) * interpolatedTime);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (mFromYDelta != mToYDelta) &#123;</span><br><span class="line">        dy = mFromYDelta + ((mToYDelta - mFromYDelta) * interpolatedTime);</span><br><span class="line">    &#125;</span><br><span class="line">    t.getMatrix().setTranslate(dx, dy);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>TranslateAnimation都是基于interpolatedTime计算动画偏移。如水平方向的偏移<br>
+dx = mFromXDelta + ((mToXDelta - mFromXDelta) * interpolatedTime) 这里的interpolatedTime可以看作是插值器计算的动画进度，它从0f-1.0f。</p>
+<p>完成这一步，就可以通过view的父view发起绘制动画的请求，这是通过parent.invalidate方法来发起的。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpayimg.png" alt="esli 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipayimg.png" alt="esli 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Android/" rel="tag"># Android</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/[object Object]/aosp-requestLayout-src/" rel="next" title="requestLayout源码分析">
+                <i class="fa fa-chevron-left"></i> requestLayout源码分析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/[object Object]/aosp-animation2-src/" rel="prev" title="android 属性动画原理">
+                android 属性动画原理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/uploads/avatar.png"
+                alt="esli" />
+            
+              <p class="site-author-name" itemprop="name">esli</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">61</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">esli</span>
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("jBNLE1XrpdNfIpNnvp02BNFi-gzGzoHsz", "1KETbc2T1LA8C2oPKVwpbzVm");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

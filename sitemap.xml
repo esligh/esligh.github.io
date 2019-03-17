@@ -2,65 +2,429 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>http://esligh.github.io/2017/09/29/aosp-inputmanager-input-dispatch-src/</loc>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-threadpool-src/</loc>
     
-    <lastmod>2018-05-19T15:01:55.702Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://esligh.github.io/2015/11/19/android-libray-volley-src/</loc>
-    
-    <lastmod>2018-05-19T14:42:33.077Z</lastmod>
+    <lastmod>2019-03-17T09:30:34.654Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://esligh.github.io/2017/07/19/android-libray-sparsearray-src/</loc>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-performtraversal-src/</loc>
     
-    <lastmod>2018-05-19T11:53:20.674Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://esligh.github.io/2017/09/25/aosp-system-zygote-startup/</loc>
-    
-    <lastmod>2018-05-19T11:47:54.443Z</lastmod>
+    <lastmod>2019-03-17T09:30:15.273Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://esligh.github.io/2017/07/19/jdk-arraylist-src/</loc>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-requestLayout-src/</loc>
     
-    <lastmod>2018-05-19T11:43:53.454Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://esligh.github.io/2016/08/25/jdk-aqs-src/</loc>
-    
-    <lastmod>2018-05-19T11:32:53.183Z</lastmod>
+    <lastmod>2019-03-17T09:30:07.996Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://esligh.github.io/2017/09/22/aosp-gui-surfaceflinger-startup/</loc>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-service-start-src/</loc>
     
-    <lastmod>2018-05-19T11:02:18.824Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://esligh.github.io/2017/09/10/aosp-choreographer/</loc>
-    
-    <lastmod>2018-05-19T10:14:31.597Z</lastmod>
+    <lastmod>2019-03-17T09:29:00.402Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://esligh.github.io/2017/09/19/aosp-startactivity-1/</loc>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-servicemanager-src/</loc>
     
-    <lastmod>2018-05-19T09:03:09.246Z</lastmod>
+    <lastmod>2019-03-17T09:28:40.213Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-system-zygote-startup/</loc>
+    
+    <lastmod>2019-03-17T09:28:27.196Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-surfaceflinger-buffer-src/</loc>
+    
+    <lastmod>2019-03-17T09:27:45.656Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-surfaceflinger-vsync-src/</loc>
+    
+    <lastmod>2019-03-17T09:27:22.960Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-classloader-src/</loc>
+    
+    <lastmod>2019-03-17T07:50:58.048Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-libray-sparsearray-src/</loc>
+    
+    <lastmod>2019-03-17T05:50:34.883Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-libray-retrofit-src/</loc>
+    
+    <lastmod>2019-03-17T03:59:04.571Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-libray-volley-src/</loc>
+    
+    <lastmod>2019-03-17T03:05:41.758Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-library-okhttp3-3-src-md/</loc>
+    
+    <lastmod>2019-03-17T02:20:11.386Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-library-okhttp3-2-src/</loc>
+    
+    <lastmod>2019-03-17T01:40:51.231Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-library-okhttp3-1-src/</loc>
+    
+    <lastmod>2019-03-17T01:27:52.722Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/anr-analysis/</loc>
+    
+    <lastmod>2019-03-17T01:20:53.966Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-plugin-res/</loc>
+    
+    <lastmod>2019-03-16T13:59:11.708Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-binder-1-src/</loc>
+    
+    <lastmod>2019-03-16T12:59:34.398Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-build/</loc>
+    
+    <lastmod>2019-03-16T12:55:26.592Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-permission-src/</loc>
+    
+    <lastmod>2019-03-16T12:47:58.989Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-memory-mgr/</loc>
+    
+    <lastmod>2019-03-16T08:42:41.045Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-camera-1-src/</loc>
+    
+    <lastmod>2019-03-16T08:27:37.559Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/ijkplayer-rtsp/</loc>
+    
+    <lastmod>2019-03-16T08:19:21.891Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-threadlocal-src/</loc>
+    
+    <lastmod>2019-03-16T08:12:31.655Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-synchronized-src/</loc>
+    
+    <lastmod>2019-03-16T08:12:23.816Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-reentrantlock-src/</loc>
+    
+    <lastmod>2019-03-16T08:11:36.737Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-hashtable-src/</loc>
+    
+    <lastmod>2019-03-16T08:11:29.955Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-hashmap-src/</loc>
+    
+    <lastmod>2019-03-16T08:11:19.501Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-arraylist-src/</loc>
+    
+    <lastmod>2019-03-16T08:11:12.849Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-aqs-src/</loc>
+    
+    <lastmod>2019-03-16T08:11:05.185Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-aqs-frame-src/</loc>
+    
+    <lastmod>2019-03-16T08:10:58.588Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/java-linkedhashmap-src/</loc>
+    
+    <lastmod>2019-03-16T08:10:46.640Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/java-hashset-src/</loc>
+    
+    <lastmod>2019-03-16T08:10:37.526Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/asop-contentprovider-src/</loc>
+    
+    <lastmod>2019-03-16T08:10:22.575Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-surfaceview-src/</loc>
+    
+    <lastmod>2019-03-16T08:10:02.539Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-surfaceflinger-composer-src/</loc>
+    
+    <lastmod>2019-03-16T08:09:35.798Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-surfaceflinger-1-src/</loc>
+    
+    <lastmod>2019-03-16T08:09:18.955Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-surfacecontrol-transaction/</loc>
+    
+    <lastmod>2019-03-16T08:09:11.652Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-surface-buffer-src/</loc>
+    
+    <lastmod>2019-03-16T08:08:25.697Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-service-bind-src/</loc>
+    
+    <lastmod>2019-03-16T08:07:54.054Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-invalidate-src/</loc>
+    
+    <lastmod>2019-03-16T08:07:12.014Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-inputmanager-input-dispatch-src/</loc>
+    
+    <lastmod>2019-03-16T08:06:52.057Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-inputevent-dispatch-src/</loc>
+    
+    <lastmod>2019-03-16T08:06:29.038Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-handlerthread-src/</loc>
+    
+    <lastmod>2019-03-16T08:06:22.787Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-gui-surfaceflinger-startup/</loc>
+    
+    <lastmod>2019-03-16T08:06:05.342Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-ethernet-build/</loc>
+    
+    <lastmod>2019-03-16T08:04:28.920Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-choreographer/</loc>
+    
+    <lastmod>2019-03-16T08:03:42.245Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-asynctask-src/</loc>
+    
+    <lastmod>2019-03-16T08:03:17.038Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-app-restore-src/</loc>
+    
+    <lastmod>2019-03-16T08:03:09.833Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-animation2-src/</loc>
+    
+    <lastmod>2019-03-16T08:03:00.146Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-activity-show-src/</loc>
+    
+    <lastmod>2019-03-16T08:02:38.579Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-activity-finish-src/</loc>
+    
+    <lastmod>2019-03-16T08:02:31.702Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-wms-add-test/</loc>
+    
+    <lastmod>2019-03-16T08:02:14.399Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-listview-src/</loc>
+    
+    <lastmod>2019-03-16T08:01:36.830Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-libray-leakcanary-src/</loc>
+    
+    <lastmod>2019-03-16T08:01:02.917Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-ams-src/</loc>
+    
+    <lastmod>2019-03-16T08:00:05.969Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-animation-src/</loc>
+    
+    <lastmod>2019-03-16T07:59:56.159Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/live/</loc>
+    
+    <lastmod>2019-02-20T12:53:23.994Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/note-server-kuibu-deploy/</loc>
+    
+    <lastmod>2019-01-02T14:02:59.029Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-startactivity-1/</loc>
+    
+    <lastmod>2018-05-23T13:20:53.279Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-handler-framework-src/</loc>
+    
+    <lastmod>2018-05-21T12:29:57.438Z</lastmod>
     
   </url>
   

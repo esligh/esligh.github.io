@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Android," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="ActivityManagerService ActivityManagerService(简称AMS)是Android系统最核心的Binder服务之一，从名称上看好像它只是Activity的管理者，但实际上AMS管理和维护着系统四大组件(Activity,Service,Broadcast,ContentProvider)的相关工作，这个任务非常重要而且异常复杂，在KK中单是AMS一个类的源码">
+<meta name="keywords" content="Android">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入理解ActivityManagerService-ActivityRecord、TaskRecord、ActivityStack的作用及关系">
+<meta property="og:url" content="http://esligh.github.io/[object Object]/aosp-ams-src/index.html">
+<meta property="og:site_name" content="esli&#39;s Blog">
+<meta property="og:description" content="ActivityManagerService ActivityManagerService(简称AMS)是Android系统最核心的Binder服务之一，从名称上看好像它只是Activity的管理者，但实际上AMS管理和维护着系统四大组件(Activity,Service,Broadcast,ContentProvider)的相关工作，这个任务非常重要而且异常复杂，在KK中单是AMS一个类的源码">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://esligh.github.io/[object%20Object]/aosp-ams-src/taskrecord.png">
+<meta property="og:updated_time" content="2019-03-16T08:00:05.969Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="深入理解ActivityManagerService-ActivityRecord、TaskRecord、ActivityStack的作用及关系">
+<meta name="twitter:description" content="ActivityManagerService ActivityManagerService(简称AMS)是Android系统最核心的Binder服务之一，从名称上看好像它只是Activity的管理者，但实际上AMS管理和维护着系统四大组件(Activity,Service,Broadcast,ContentProvider)的相关工作，这个任务非常重要而且异常复杂，在KK中单是AMS一个类的源码">
+<meta name="twitter:image" content="http://esligh.github.io/[object%20Object]/aosp-ams-src/taskrecord.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://esligh.github.io/[object Object]/aosp-ams-src/"/>
+
+
+
+
+
+  <title>深入理解ActivityManagerService-ActivityRecord、TaskRecord、ActivityStack的作用及关系 | esli's Blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">esli's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">day day up</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://esligh.github.io/[object Object]/aosp-ams-src/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="esli">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="esli's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">深入理解ActivityManagerService-ActivityRecord、TaskRecord、ActivityStack的作用及关系</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-10-15T10:10:04+08:00">
+                2017-10-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AOSP/" itemprop="url" rel="index">
+                    <span itemprop="name">AOSP</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+             <span id="/[object Object]/aosp-ams-src/" class="leancloud_visitors" data-flag-title="深入理解ActivityManagerService-ActivityRecord、TaskRecord、ActivityStack的作用及关系">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="activitymanagerservice"><a class="markdownIt-Anchor" href="#activitymanagerservice"></a> ActivityManagerService</h3>
+<p>ActivityManagerService(简称AMS)是Android系统最核心的Binder服务之一，从名称上看好像它只是Activity的管理者，但实际上AMS管理和维护着系统四大组件(Activity,Service,Broadcast,ContentProvider)的相关工作，这个任务非常重要而且异常复杂，在KK中单是AMS一个类的源码行数就高达一万六千多行，可见其内部的任务有多庞大。在这之中，AMS对于Activity的管理任务最为复杂，这可能也是它为什么叫ActivityManagerService的原因吧。AMS对于activity的管理实际上通过三个类来体现，它们分别是ActivityRecord，TaskRecord以及ActivityStack，把握和理解它们之间的关系对于我们理解AMS的工作将会有很大的帮助。因此本篇将会介绍这三者在AMS中的联系和作用。</p>
+<h3 id="activityrecord"><a class="markdownIt-Anchor" href="#activityrecord"></a> ActivityRecord</h3>
+<p>ActivityRecord是应用层Activity组件在AMS中的代表，每一个在应用中启动的Activity，在AMS中都有一个ActivityRecord实例来与之对应，这个ActivityRecord伴随着Activity的启动而创建，也伴随着Activity的终止而销毁。</p>
+<h4 id="类结构说明"><a class="markdownIt-Anchor" href="#类结构说明"></a> 类结构说明</h4>
+<p>关于ActivityRecord类，它只是一个简单的类，并没有继承任何其他父类，在它内部存储的都是一些关于Activity组件的相关信息，所以类结构比较简单，下面我将列出它的一些成员进行介绍：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * An entry in the history stack, representing an activity.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">ActivityRecord</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> ActivityManagerService service; <span class="comment">// owner</span></span><br><span class="line">    <span class="keyword">final</span> IApplicationToken.Stub appToken; <span class="comment">// window manager token</span></span><br><span class="line">    <span class="keyword">final</span> ActivityInfo info; <span class="comment">// all about me</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> launchedFromUid; <span class="comment">// always the uid who started the activity.</span></span><br><span class="line">    <span class="keyword">final</span> String launchedFromPackage; <span class="comment">// always the package who started the activity.</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> userId;          <span class="comment">// Which user is this running for?</span></span><br><span class="line">    <span class="keyword">final</span> Intent intent;    <span class="comment">// the original intent that generated us</span></span><br><span class="line">    <span class="keyword">final</span> ComponentName realActivity;  <span class="comment">// the intent component, or target of an alias.</span></span><br><span class="line">    <span class="keyword">final</span> String shortComponentName; <span class="comment">// the short component name of the intent</span></span><br><span class="line">    <span class="keyword">final</span> String resolvedType; <span class="comment">// as per original caller;</span></span><br><span class="line">    <span class="keyword">final</span> String packageName; <span class="comment">// the package implementing intent's component</span></span><br><span class="line">    <span class="keyword">final</span> String processName; <span class="comment">// process where this component wants to run</span></span><br><span class="line">    <span class="keyword">final</span> String taskAffinity; <span class="comment">// as per ActivityInfo.taskAffinity</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">int</span> labelRes;           <span class="comment">// the label information from the package mgr.</span></span><br><span class="line">    <span class="keyword">int</span> icon;               <span class="comment">// resource identifier of activity's icon.</span></span><br><span class="line">    <span class="keyword">int</span> logo;               <span class="comment">// resource identifier of activity's logo.</span></span><br><span class="line">    <span class="keyword">int</span> theme;              <span class="comment">// resource identifier of activity's theme.</span></span><br><span class="line">    <span class="keyword">int</span> realTheme;          <span class="comment">// actual theme resource we will use, never 0.</span></span><br><span class="line">    <span class="keyword">int</span> windowFlags;        <span class="comment">// custom window flags for preview window.</span></span><br><span class="line">    TaskRecord task;        <span class="comment">// the task this is in.</span></span><br><span class="line">    Configuration configuration; <span class="comment">// configuration activity was last running in</span></span><br><span class="line">    CompatibilityInfo compat;<span class="comment">// last used compatibility mode</span></span><br><span class="line">    ActivityRecord resultTo; <span class="comment">// who started this entry, so will get our reply</span></span><br><span class="line">    <span class="keyword">final</span> String resultWho; <span class="comment">// additional identifier for use by resultTo.</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> requestCode;  <span class="comment">// code given by requester (resultTo)</span></span><br><span class="line">    HashSet&lt;WeakReference&lt;PendingIntentRecord&gt;&gt; pendingResults; <span class="comment">// all pending intents for this act</span></span><br><span class="line">    ArrayList&lt;Intent&gt; newIntents; <span class="comment">// any pending new intents for single-top mode</span></span><br><span class="line">    ActivityOptions pendingOptions; <span class="comment">// most recently given options</span></span><br><span class="line">    HashSet&lt;ConnectionRecord&gt; connections; <span class="comment">// All ConnectionRecord we hold</span></span><br><span class="line">    UriPermissionOwner uriPermissions; <span class="comment">// current special URI access perms.</span></span><br><span class="line">    ProcessRecord app;      <span class="comment">// if non-null, hosting application</span></span><br><span class="line">    ActivityState state;    <span class="comment">// current state we are in</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">int</span> launchMode;         <span class="comment">// the launch mode activity attribute.</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以看出ActivityRecord包含了很多信息，我们简单描述下：</p>
+<ol>
+<li>appToken ：这是一个Binder，而且是Server端的实体，Token即令牌，它一般作为一个标识使用，这个appToken用来在WindowManagerService端标识这个AcitvityRecord，token的实现如下</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Token</span> <span class="keyword">extends</span> <span class="title">IApplicationToken</span>.<span class="title">Stub</span> </span>&#123;</span><br><span class="line">        <span class="keyword">final</span> WeakReference&lt;ActivityRecord&gt; weakActivity;</span><br><span class="line"></span><br><span class="line">        Token(ActivityRecord activity) &#123;</span><br><span class="line">            weakActivity = <span class="keyword">new</span> WeakReference&lt;ActivityRecord&gt;(activity);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@Override</span> <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">windowsDrawn</span><span class="params">()</span> </span>&#123;</span><br><span class="line">            ActivityRecord activity = weakActivity.get();</span><br><span class="line">            <span class="keyword">if</span> (activity != <span class="keyword">null</span>) &#123;</span><br><span class="line">                activity.windowsDrawn();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@Override</span> <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">windowsVisible</span><span class="params">()</span> </span>&#123;</span><br><span class="line">            ActivityRecord activity = weakActivity.get();</span><br><span class="line">            <span class="keyword">if</span> (activity != <span class="keyword">null</span>) &#123;</span><br><span class="line">                activity.windowsVisible();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@Override</span> <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">windowsGone</span><span class="params">()</span> </span>&#123;</span><br><span class="line">            ActivityRecord activity = weakActivity.get();</span><br><span class="line">            <span class="keyword">if</span> (activity != <span class="keyword">null</span>) &#123;</span><br><span class="line">                activity.windowsGone();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    ...        </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以看到它实际上是一个Token，实现了自IApplicationToken.Stub的方法，内部有个弱引用指向包含它的ActivityRecord实例，从实现来看，appkToken实际上有两个作用，在WMS端标记一个ActivityRecord，同时可以通过该token和AMS进行通信。<br>
+2. launchedFromUid和launchedFromPackage 启动该activity的应用uid和包名，比如我们从launcher启动的应用activity，这个对应的就是launcher的uid和包名<br>
+3. intent 和 ComponentName intent是启动时候传递的意图对象，ComponentName标记了启动的acitivity组件。<br>
+4. packageName和processName 分别代表了activity所属应用的包名和进程名<br>
+5. taskAffinity 标记了activity的亲属性，默认情况下为包名，这个成员和该activity所属TaskRecord有关，后面我们具体介绍。<br>
+6. logo 和 theme 这些是activity所使用的logo和theme资源标记。<br>
+7. task 应用所属TaskRecord,后面介绍。<br>
+8. resultTo和requestCode，resultTo也是一个ActivityRecord,它是当前ActivityRecord对应的activity要返回和回复的activity，我们通过startActivityForResult启动一个activity时，往往需要接受来自于启动的activity的返回值，这个resultTo就是负责处理返回值的activity对应的ActivityRecord<br>
+9. app 它是一个ProcessRecord,用于描述当前activity所在应用的进程<br>
+10. state 它是一个AcitivityState枚举,用于描述当前activity的状态，这些状态被AMS内部使用，ActivityState的定义如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> ActivityState &#123;</span><br><span class="line">        INITIALIZING,</span><br><span class="line">        RESUMED,</span><br><span class="line">        PAUSING,</span><br><span class="line">        PAUSED,</span><br><span class="line">        STOPPING,</span><br><span class="line">        STOPPED,</span><br><span class="line">        FINISHING,</span><br><span class="line">        DESTROYING,</span><br><span class="line">        DESTROYED</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol start="11">
+<li>launchMode activity的启动模式</li>
+</ol>
+<h4 id="activityrecord的创建"><a class="markdownIt-Anchor" href="#activityrecord的创建"></a> ActivityRecord的创建</h4>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">int</span> <span class="title">startActivityLocked</span><span class="params">(IApplicationThread caller,</span></span></span><br><span class="line"><span class="function"><span class="params">            Intent intent, String resolvedType, ActivityInfo aInfo, IBinder resultTo,</span></span></span><br><span class="line"><span class="function"><span class="params">            String resultWho, <span class="keyword">int</span> requestCode,</span></span></span><br><span class="line"><span class="function"><span class="params">            <span class="keyword">int</span> callingPid, <span class="keyword">int</span> callingUid, String callingPackage, <span class="keyword">int</span> startFlags, Bundle options,</span></span></span><br><span class="line"><span class="function"><span class="params">            <span class="keyword">boolean</span> componentSpecified, ActivityRecord[] outActivity)</span> </span>&#123;</span><br><span class="line">          ...</span><br><span class="line">          <span class="comment">//为activity创建ActivityRecord</span></span><br><span class="line">          ActivityRecord r = <span class="keyword">new</span> ActivityRecord(mService, callerApp, callingUid, callingPackage,</span><br><span class="line">                intent, resolvedType, aInfo, mService.mConfiguration,</span><br><span class="line">                resultRecord, resultWho, requestCode, componentSpecified, <span class="keyword">this</span>);</span><br><span class="line">          ...      </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>AcitivtyRecord是在启动activity时候创建的，这里具体是在ActivityStackSupervisor中，关于ActivityStackSupervisor后面再介绍。我们看看ActivityRecord的构造方法中</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">ActivityRecord(ActivityManagerService _service, ProcessRecord _caller,</span><br><span class="line">            <span class="keyword">int</span> _launchedFromUid, String _launchedFromPackage, Intent _intent, String _resolvedType,</span><br><span class="line">            ActivityInfo aInfo, Configuration _configuration,</span><br><span class="line">            ActivityRecord _resultTo, String _resultWho, <span class="keyword">int</span> _reqCode,</span><br><span class="line">            <span class="keyword">boolean</span> _componentSpecified, ActivityStackSupervisor supervisor) &#123;</span><br><span class="line">        service = _service;</span><br><span class="line">        appToken = <span class="keyword">new</span> Token(<span class="keyword">this</span>);<span class="comment">//创建了appToken 这个token用来标记activity，token内部持有该ActivityRecord的弱引用</span></span><br><span class="line">        info = aInfo;</span><br><span class="line">        launchedFromUid = _launchedFromUid;</span><br><span class="line">        launchedFromPackage = _launchedFromPackage;</span><br><span class="line">        userId = UserHandle.getUserId(aInfo.applicationInfo.uid);</span><br><span class="line">        intent = _intent;</span><br><span class="line">        shortComponentName = _intent.getComponent().flattenToShortString();</span><br><span class="line">        resolvedType = _resolvedType;</span><br><span class="line">        componentSpecified = _componentSpecified;</span><br><span class="line">        configuration = _configuration;</span><br><span class="line">        resultTo = _resultTo;</span><br><span class="line">        resultWho = _resultWho;</span><br><span class="line">        requestCode = _reqCode;</span><br><span class="line">        state = ActivityState.INITIALIZING;</span><br><span class="line">        frontOfTask = <span class="keyword">false</span>;</span><br><span class="line">        launchFailed = <span class="keyword">false</span>;</span><br><span class="line">        stopped = <span class="keyword">false</span>;</span><br><span class="line">        delayedResume = <span class="keyword">false</span>;</span><br><span class="line">        finishing = <span class="keyword">false</span>;</span><br><span class="line">        configDestroy = <span class="keyword">false</span>;</span><br><span class="line">        keysPaused = <span class="keyword">false</span>;</span><br><span class="line">        inHistory = <span class="keyword">false</span>;</span><br><span class="line">        visible = <span class="keyword">true</span>;</span><br><span class="line">        waitingVisible = <span class="keyword">false</span>;</span><br><span class="line">        nowVisible = <span class="keyword">false</span>;</span><br><span class="line">        thumbnailNeeded = <span class="keyword">false</span>;</span><br><span class="line">        idle = <span class="keyword">false</span>;</span><br><span class="line">        hasBeenLaunched = <span class="keyword">false</span>;</span><br><span class="line">        mStackSupervisor = supervisor;</span><br><span class="line"></span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在构造方法中创建了ActivityRecord的appToken，关于appToken我们前面已经做了介绍。初始的activity状态为ActivityState.INITIALIZING，这里的visible标记的是activity在WMS端对应的window是否需要显示，在构造ActivityRecord时表示我们要启动activity了，这时候也就需要WMS为我们显示窗口，置true。nowVisible表示的是activity当前的窗口显示状态，这时候activity还在创建过程中，还未显示出来，置false。</p>
+<h3 id="taskrecord"><a class="markdownIt-Anchor" href="#taskrecord"></a> TaskRecord</h3>
+<p>TaskRecord即任务栈，或者叫返回栈(back Stack)，Task实际上是指执行一个特定任务时和用户进行交互的一组activity，什么意思呢？比如我们为了完成用微信发送消息这个任务，而需要打开首页的联系人列表，然后选择一个联系人进入聊天界面发送消息，这两个activity就可以说是一个Task，但如果我们说要发送图片，那么还会去打开选择照片的activity，这时候Task就是三个activity，所以说Task是一个动态的概念，但不管怎么样，我们总成为它是一组activity的集合，这个集合在AMS中就是TaskRecord，它和数据结构中的Stack结构类似，也是先进后出，当我们打开App中的一个activity1时，它对应的ActivityRecord被添加到TaskRecord中，再在activit1中打开第二个页面activity2，在activity2中打开activity3，同样它们的ActivityRecord也会被添加到TaskRecord，当我们按下返回键，activity3先从TaskRecord中弹出来，依次类推，当task中所有的activity被弹出后，这个task也就销毁了。最终它的结构如下图所示：</p>
+<p><img src="/[object Object]/aosp-ams-src/taskrecord.png" alt="TaskRecord结构图"></p>
+<h4 id="task切换"><a class="markdownIt-Anchor" href="#task切换"></a> Task切换</h4>
+<p>一般情况下，我们可以将打开的一个app看做是一个TaskRecord，当我们先后打开app A的两个页面A和B，这时候在其对应的TaskRecord中就有两个ActivityRecord的记录，当我们按下home键后，然后打开另一个app B的C和D页面，这时候app A的TaskRecord就到了后台中，它内部的两个activity此时都处于停止状态，而app B的TaskRecord此时处于前台和用户交互的状态，它的TaskRecord中也有两个ActivityRecord的记录，如果我们再按下home键，点击app A,这时候我们发现app A停留在B页面，也就是说app A的TaskRecord又作为一个整体从后台切换到了前台，它的状态和之前是一样的。系统可以同时管理多个后台的TaskRecord，但是如果用户打开的太多app在后台中，系统可能会回收一部分。</p>
+<p>打开多个app时，AMS中就存在了多个TaskRecord，我们可以在这些TaskRecord之间进行切换，当我打开Email应用后可以在编辑Email的过程中打开相册应用来选择图片，选择完成后可以继续回到Email中编辑邮件。这个是Task切换带来的便利。</p>
+<h4 id="启动模式launchmode"><a class="markdownIt-Anchor" href="#启动模式launchmode"></a> 启动模式launchMode</h4>
+<p>Android管理activity的方式是在同一个Task中使用先进后出的栈管理方式，默认情况下，我们创建一个Activity就会在TaskRecord中有一个实例，但有些时候我们可能希望当启动一个activity的时候使用TaskRecord中已经存在的实例或者当我们启动一个activity时需要将它放置在单独的一个TaskRecord之中，这时候就需要我们为启动的activity设置启动模式(launchMode)了，所以说launchMode是和TaskRecord相关联的。</p>
+<p>有四种不同的启动模式：</p>
+<ol>
+<li>standard，这个即是Android默认的启动模式，每打开一个Activity就创建一个实例到Task中，同一个Activity在Task中可以有多个实例。</li>
+<li>singleTop，如果一个activity的实例已经在Task栈的顶部，那么当再次打开这个activity时会复用这个实例而不再创建一个新的实例，同时通过onNewIntent传递给这个实例Intent。比如Task已经有四个activityA-&gt;B-&gt;C-&gt;D,D在Task顶部，那么再次打开D页面时，Task依然是A-&gt;B-&gt;C-&gt;D，而在Standard模式下将会是A-&gt;B-&gt;C-D-&gt;D</li>
+<li>singleTask，这个是说一个activity的实例在Task只能有一个实例，如果一个activity实例已经在Task中存在，Android系统会直接把Intent路由到Task中存在的Activity实例对象上，会通过调用onNewIntent()方法处理，而非创建一个新的Activity实例对象。并且会把在它之上的其它Activity清理掉。但是如果实例不存在Task中，此时系统将会为比较调用方activity和被调用方activity的taskAffnity，如果一致就将该activity创建一个实例，并加入到已存在的Task中，如果不一致，就为该activity创建一个新的Task，此时activity是作为Task的root activity的。事实上，Task的taskAffinity正是由Task的root activity决定的。</li>
+<li>singleInstance，如果设置了该模式，那么在Task中只能有一个该activity的实例。</li>
+</ol>
+<p>启动模式不仅可以在AndroidManifest中进行设定，同样的我们可以使用Intent Flags进行设定,一些常见的Flags可以更方便和灵活的处理activity和Task的关系：</p>
+<ol>
+<li>FLAG_ACTIVITY_NEW_TASK ，这个标记同singleTask的处理方式</li>
+<li>FLAG_ACTIVITY_SINGLE_TOP，这个标记同singleTop的处理方式</li>
+<li>FLAG_ACTIVITY_CLEAR_TOP，如果activity的实例已经在当前Task中，那么再启动时，将会将其之上的activity实例都销毁掉。比如Task A-&gt;B-&gt;C-&gt;D,如果在D中启动B添加了该标记，那么会将C和C都从Task销毁掉，如果此时B是默认的启动模式，那么会将B的实例也销毁，并重新创建一个实例添加到Task顶部，如果我们不想它重新创建，可以配合FLAG_ACTIVITY_SINGLE_TOP使用，这样复用顶部的B实例并触发onNewIntent。</li>
+<li>FLAG_ACTIVITY_REORDER_TO_FRONT，新启动的Activity将会被放到它所属task的顶部，例如，当Task A-&gt;B-&gt;C-&gt;D，如果D启动B使用了这个标记，B将会排在这个task的最上面，也即现在Task的顺序变成了A,C,D,B。</li>
+<li>FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET 这个标记将会在TASK重置时清理对应的Activity，比如Task当前为A-&gt;B，A启动B添加了该标记，那么当切换到Home再打开该应用后Task变为A，B被清理。这个其实是在Task中设置了一个还原点，当Task重置时将Task恢复到指定的还原点。</li>
+</ol>
+<p>另外在 AndroidManifest的<activity>中也可以设置和Task相关属性，下面我们看看几种：</activity></p>
+<ol>
+<li>
+<p>android:allowTaskReparenting<br>
+这个属性定义的是activity具有reparent Task的能力，即标记一个Activity实例在当前应用退居后台后，是否能从启动它的那个Task移动到有共同TaskAffinity的Task，“true”表示可以移动，“false”表示它必须呆在当前应用的task中，默认值为false。下面通过一个例子说明这种情况：<br>
+比如App A 有一个Activity:MainActivity，App B有两个Activity:BMainActivity和SecondActivity，其中SecondActivity定义了该属性为true，当我们在App A中的MainActivity中启动App B的SecondActivity后，此时A的Task为MainActivity-&gt;SecondActivity，注意此时MainActivity和SecondActivity的TaskAffinity并不是相同的，他们为各自的包名。如果此时按Home键回到Launcher，再启动App B后，会发现此时的页面是SecondActivity，也就是说SecondActivity从原来App A的Task移动到了和他TaskAffinity相同的Task中即App B的Task。</p>
+</li>
+<li>
+<p>android:clearTaskOnLaunch<br>
+如果设置了这个属性为true，每次用户重新启动这个应用时，都只会看到Root Activity，task中的其他Activity都会被清除出栈。这个属性也只对Root Activity有效。</p>
+</li>
+<li>
+<p>android:alwaysRetainTaskState<br>
+这个属性是让Task保持原来的状态，true表示保持，false不能够保持，此属性也只对Root Activity有效，一般情况下，如果Task切换到后台后太久系统会对Task进行清理，除了Root Activity其他Activity都会被清理。但如果设置了该属性为true，则可以保持上次操作的界面。</p>
+</li>
+<li>
+<p>android:noHistory<br>
+这个属性设置为true后，则Activity将不会被记录到Task的history列表中，那么就是说，这个Activity不可见，那么它实际上就和销毁了一样，因为AMS没有它的相关信息。</p>
+</li>
+</ol>
+<h4 id="taskrecord的实现"><a class="markdownIt-Anchor" href="#taskrecord的实现"></a> TaskRecord的实现</h4>
+<p>了解了Task的相关知识，接下来我们看看它是如何在AMS中实现的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">TaskRecord</span> <span class="keyword">extends</span> <span class="title">ThumbnailHolder</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> taskId;       <span class="comment">// Unique identifier for this task. //Task栈的比唯一标志</span></span><br><span class="line">    <span class="keyword">final</span> String affinity;  <span class="comment">// The affinity name for this task, or null.</span></span><br><span class="line">    Intent intent;          <span class="comment">// The original intent that started the task.</span></span><br><span class="line">    Intent affinityIntent;  <span class="comment">// Intent of affinity-moved activity that started this task.</span></span><br><span class="line">    ComponentName origActivity; <span class="comment">// The non-alias activity component of the intent.</span></span><br><span class="line">    ComponentName realActivity; <span class="comment">// The actual activity component that started the task.</span></span><br><span class="line">    <span class="keyword">int</span> numActivities;      <span class="comment">// Current number of activities in this task.</span></span><br><span class="line">    <span class="keyword">long</span> lastActiveTime;    <span class="comment">// Last time this task was active, including sleep.</span></span><br><span class="line">    <span class="keyword">boolean</span> rootWasReset;   <span class="comment">// True if the intent at the root of the task had</span></span><br><span class="line">                            <span class="comment">// the FLAG_ACTIVITY_RESET_TASK_IF_NEEDED flag.</span></span><br><span class="line">    <span class="keyword">boolean</span> askedCompatMode;<span class="comment">// Have asked the user about compat mode for this task.</span></span><br><span class="line"></span><br><span class="line">    String stringName;      <span class="comment">// caching of toString() result.</span></span><br><span class="line">    <span class="keyword">int</span> userId;             <span class="comment">// user for which this task was created</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> numFullscreen;      <span class="comment">// Number of fullscreen activities.</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/** List of all activities in the task arranged in history order */</span></span><br><span class="line">    <span class="keyword">final</span> ArrayList&lt;ActivityRecord&gt; mActivities = <span class="keyword">new</span> ArrayList&lt;ActivityRecord&gt;();<span class="comment">//以历史序排列的所有activities</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/** Current stack */</span></span><br><span class="line">    ActivityStack stack;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/** Takes on same set of values as ActivityRecord.mActivityType */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> mTaskType;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/** Launch the home activity when leaving this task. */</span></span><br><span class="line">    <span class="keyword">boolean</span> mOnTopOfHome = <span class="keyword">false</span>;</span><br><span class="line"></span><br><span class="line">    TaskRecord(<span class="keyword">int</span> _taskId, ActivityInfo info, Intent _intent) &#123;</span><br><span class="line">        taskId = _taskId;</span><br><span class="line">        affinity = info.taskAffinity;</span><br><span class="line">        setIntent(_intent, info);</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在AMS中，Task是通过TaskRecord类来描述的，它的成员相对ActivityRecord要少很多，这里我们介绍下：</p>
+<ol>
+<li>taskId，这个是TaskRecord的一个唯一标记</li>
+<li>affnity，亲属性的名称，同一个Task的ativity有相同的taskAffinity,它是由Task的Root Activity的taskAffinity决定的。</li>
+<li>Intent，启动这个Task的源activity对应的Intent，也即是启动root activity的Intent。</li>
+<li>numActivities，这个是当前Task中的activity数目。</li>
+<li>numFullscreen 全屏activity的个数</li>
+<li>mActivities 维护的ActivityRecord实例，这个代表的就是Activity，可见TaskRecord栈结构是通过ArrayList来体现的。</li>
+<li>stack ，所属的ActivityStack，关于ActivityStack我们后面介绍</li>
+</ol>
+<h4 id="taskrecord的创建"><a class="markdownIt-Anchor" href="#taskrecord的创建"></a> TaskRecord的创建</h4>
+<p>一般情况下，在启动App的第一个activity时，AMS为其创建一个TaskRecord任务栈，当然启动后也可能创建新的TaskRecord,比如我们启动singleTask的Activity，而且为该Activity指定了和包名不同的taskAffinity，这时候也会为该activity创建一个新的TaskRecord，所有一个App是可能有多个TaskRecord存在的，这取决于应用的使用场景和需求。</p>
+<p>我们按照分析的逻辑看看AMS中是如何实现为TaskRecord创建的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">int</span> <span class="title">startActivityUncheckedLocked</span><span class="params">(ActivityRecord r,</span></span></span><br><span class="line"><span class="function"><span class="params">            ActivityRecord sourceRecord, <span class="keyword">int</span> startFlags, <span class="keyword">boolean</span> doResume,</span></span></span><br><span class="line"><span class="function"><span class="params">            Bundle options)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (((launchFlags&amp;Intent.FLAG_ACTIVITY_NEW_TASK) != <span class="number">0</span> &amp;&amp;</span><br><span class="line">                (launchFlags&amp;Intent.FLAG_ACTIVITY_MULTIPLE_TASK) == <span class="number">0</span>)</span><br><span class="line">                || r.launchMode == ActivityInfo.LAUNCH_SINGLE_TASK</span><br><span class="line">                || r.launchMode == ActivityInfo.LAUNCH_SINGLE_INSTANCE) &#123;</span><br><span class="line">            </span><br><span class="line">            <span class="keyword">boolean</span> addingToTask = <span class="keyword">false</span>;</span><br><span class="line">            TaskRecord reuseTask = <span class="keyword">null</span>;</span><br><span class="line">            ...        </span><br><span class="line">            ActivityRecord intentActivity = r.launchMode != ActivityInfo.LAUNCH_SINGLE_INSTANCE</span><br><span class="line">                                ? findTaskLocked(r)</span><br><span class="line">                                : findActivityLocked(intent, r.info);</span><br><span class="line">            ...</span><br><span class="line">            <span class="keyword">if</span> (r.resultTo == <span class="keyword">null</span> &amp;&amp; !addingToTask</span><br><span class="line">                &amp;&amp; (launchFlags&amp;Intent.FLAG_ACTIVITY_NEW_TASK) != <span class="number">0</span>) &#123;</span><br><span class="line">                ...</span><br><span class="line">                <span class="keyword">if</span> (reuseTask == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    r.setTask(targetStack.createTaskRecord(getNextTaskId(),</span><br><span class="line">                            newTaskInfo != <span class="keyword">null</span> ? newTaskInfo : r.info,</span><br><span class="line">                            newTaskIntent != <span class="keyword">null</span> ? newTaskIntent : intent,</span><br><span class="line">                            <span class="keyword">true</span>), <span class="keyword">null</span>, <span class="keyword">true</span>);<span class="comment">//创建新的taskRecord</span></span><br><span class="line">                &#125;        </span><br><span class="line">            &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当启动模式设定为singleTask后我们通过findTaskLocked来为启动的Activity寻找TaskRecord，如果找到则返回它顶部的Activity对应的ActivityRecord。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">ActivityRecord <span class="title">findTaskLocked</span><span class="params">(ActivityRecord r)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (DEBUG_TASKS) Slog.d(TAG, <span class="string">"Looking for task of "</span> + r);</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> stackNdx = mStacks.size() - <span class="number">1</span>; stackNdx &gt;= <span class="number">0</span>; --stackNdx) &#123;</span><br><span class="line">        <span class="keyword">final</span> ActivityStack stack = mStacks.get(stackNdx);</span><br><span class="line">        <span class="keyword">if</span> (!r.isApplicationActivity() &amp;&amp; !stack.isHomeStack()) &#123;</span><br><span class="line">            <span class="keyword">if</span> (DEBUG_TASKS) Slog.d(TAG, <span class="string">"Skipping stack: "</span> + stack);</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">final</span> ActivityRecord ar = stack.findTaskLocked(r);</span><br><span class="line">        <span class="keyword">if</span> (ar != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> ar;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (DEBUG_TASKS) Slog.d(TAG, <span class="string">"No task found"</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">    * Returns the top activity in any existing task matching the given</span></span><br><span class="line"><span class="comment">    * Intent.  Returns null if no such task is found.</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line"><span class="function">ActivityRecord <span class="title">findTaskLocked</span><span class="params">(ActivityRecord target)</span> </span>&#123;</span><br><span class="line">    Intent intent = target.intent;<span class="comment">//要启动Activity的Intent</span></span><br><span class="line">    ActivityInfo info = target.info;</span><br><span class="line">    ComponentName cls = intent.getComponent();</span><br><span class="line">    <span class="keyword">if</span> (info.targetActivity != <span class="keyword">null</span>) &#123;</span><br><span class="line">        cls = <span class="keyword">new</span> ComponentName(info.packageName, info.targetActivity);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> userId = UserHandle.getUserId(info.applicationInfo.uid);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (DEBUG_TASKS) Slog.d(TAG, <span class="string">"Looking for task of "</span> + target + <span class="string">" in "</span> + <span class="keyword">this</span>);</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> taskNdx = mTaskHistory.size() - <span class="number">1</span>; taskNdx &gt;= <span class="number">0</span>; --taskNdx) &#123;<span class="comment">//遍历TaskRecord</span></span><br><span class="line">        <span class="keyword">final</span> TaskRecord task = mTaskHistory.get(taskNdx);</span><br><span class="line">        <span class="keyword">if</span> (task.userId != userId) &#123;</span><br><span class="line">            <span class="comment">// Looking for a different task.</span></span><br><span class="line">            <span class="keyword">if</span> (DEBUG_TASKS) Slog.d(TAG, <span class="string">"Skipping "</span> + task + <span class="string">": different user"</span>);</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">final</span> ActivityRecord r = task.getTopActivity();<span class="comment">//获取taskRecord顶部的activity</span></span><br><span class="line">        <span class="keyword">if</span> (r == <span class="keyword">null</span> || r.finishing || r.userId != userId ||</span><br><span class="line">                r.launchMode == ActivityInfo.LAUNCH_SINGLE_INSTANCE) &#123;</span><br><span class="line">            <span class="keyword">if</span> (DEBUG_TASKS) Slog.d(TAG, <span class="string">"Skipping "</span> + task + <span class="string">": mismatch root "</span> + r);</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (DEBUG_TASKS) Slog.d(TAG, <span class="string">"Comparing existing cls="</span></span><br><span class="line">                + r.task.intent.getComponent().flattenToShortString()</span><br><span class="line">                + <span class="string">"/aff="</span> + r.task.affinity + <span class="string">" to new cls="</span></span><br><span class="line">                + intent.getComponent().flattenToShortString() + <span class="string">"/aff="</span> + info.taskAffinity);</span><br><span class="line">        <span class="keyword">if</span> (task.affinity != <span class="keyword">null</span>) &#123;<span class="comment">//首先根据亲属性taskAffinity匹配，相等的就是匹配的</span></span><br><span class="line">            <span class="keyword">if</span> (task.affinity.equals(info.taskAffinity)) &#123;</span><br><span class="line">                <span class="keyword">if</span> (DEBUG_TASKS) Slog.d(TAG, <span class="string">"Found matching affinity!"</span>);</span><br><span class="line">                <span class="keyword">return</span> r;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (task.intent != <span class="keyword">null</span> &amp;&amp; task.intent.getComponent().equals(cls)) &#123;<span class="comment">//否则启动的就是栈顶activity</span></span><br><span class="line">            <span class="keyword">if</span> (DEBUG_TASKS) Slog.d(TAG, <span class="string">"Found matching class!"</span>);</span><br><span class="line">            <span class="comment">//dump();</span></span><br><span class="line">            <span class="keyword">if</span> (DEBUG_TASKS) Slog.d(TAG, <span class="string">"For Intent "</span> + intent + <span class="string">" bringing to top: "</span></span><br><span class="line">                    + r.intent);</span><br><span class="line">            <span class="keyword">return</span> r;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (task.affinityIntent != <span class="keyword">null</span></span><br><span class="line">                &amp;&amp; task.affinityIntent.getComponent().equals(cls)) &#123;</span><br><span class="line">            <span class="keyword">if</span> (DEBUG_TASKS) Slog.d(TAG, <span class="string">"Found matching class!"</span>);</span><br><span class="line">            <span class="comment">//dump();</span></span><br><span class="line">            <span class="keyword">if</span> (DEBUG_TASKS) Slog.d(TAG, <span class="string">"For Intent "</span> + intent + <span class="string">" bringing to top: "</span></span><br><span class="line">                    + r.intent);</span><br><span class="line">            <span class="keyword">return</span> r;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (DEBUG_TASKS) &#123;</span><br><span class="line">            Slog.d(TAG, <span class="string">"Not a match: "</span> + task);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;<span class="comment">//未找到就返回null</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在findTaskLocked中，我们会比较要启动的Activity和Task的affinity，如果匹配就返回TaskRecord顶部的ActivityRecord，如果最终没找到则返回null。如果返回值intentActivity为null，那么<br>
+addingToTask和reuseTask都不会设置，这时候会通过createTaskRecord创建TaskRecord并设置到ActivityRecord之中。</p>
+<h4 id="taskrecord的复用"><a class="markdownIt-Anchor" href="#taskrecord的复用"></a> TaskRecord的复用</h4>
+<p>事实上大多数情况，Activity都会复用TaskRecord,也就是说Activity会添加到相同的TaskRecord之中，除了应用第一次启动或者taskAffinity不同之外。如果上一步中通过findTaskLocked返回的intentActivity不为null，这表示我们为启动模式为singleTask的activity找到了一个可复用的TaskRecord。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">int</span> <span class="title">startActivityUncheckedLocked</span><span class="params">(ActivityRecord r,</span></span></span><br><span class="line"><span class="function"><span class="params">            ActivityRecord sourceRecord, <span class="keyword">int</span> startFlags, <span class="keyword">boolean</span> doResume,</span></span></span><br><span class="line"><span class="function"><span class="params">            Bundle options)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (((launchFlags&amp;Intent.FLAG_ACTIVITY_NEW_TASK) != <span class="number">0</span> &amp;&amp;</span><br><span class="line">                (launchFlags&amp;Intent.FLAG_ACTIVITY_MULTIPLE_TASK) == <span class="number">0</span>)</span><br><span class="line">                || r.launchMode == ActivityInfo.LAUNCH_SINGLE_TASK</span><br><span class="line">                || r.launchMode == ActivityInfo.LAUNCH_SINGLE_INSTANCE) &#123;</span><br><span class="line">                ActivityRecord intentActivity = r.launchMode != ActivityInfo.LAUNCH_SINGLE_INSTANCE</span><br><span class="line">                                        ? findTaskLocked(r)</span><br><span class="line">                                        : findActivityLocked(intent, r.info);</span><br><span class="line">                <span class="keyword">if</span> (intentActivity != <span class="keyword">null</span>) &#123;<span class="comment">//找到对应TaskRecord栈顶的ActivityRecord</span></span><br><span class="line">                    <span class="keyword">if</span> (r.task == <span class="keyword">null</span>) &#123;</span><br><span class="line">                        r.task = intentActivity.task;<span class="comment">//设置r的TaskRecord为该Task</span></span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (r.resultTo == <span class="keyword">null</span> &amp;&amp; !addingToTask</span><br><span class="line">                &amp;&amp; (launchFlags&amp;Intent.FLAG_ACTIVITY_NEW_TASK) != <span class="number">0</span>) &#123;</span><br><span class="line">        ...</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (sourceRecord != <span class="keyword">null</span>) &#123;<span class="comment">//针对其他启动模式的复用TaskRecord</span></span><br><span class="line">        TaskRecord sourceTask = sourceRecord.task;</span><br><span class="line">        targetStack = sourceTask.stack;</span><br><span class="line">        ...</span><br><span class="line">        r.setTask(sourceTask, sourceRecord.thumbHolder, <span class="keyword">false</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="activitystack"><a class="markdownIt-Anchor" href="#activitystack"></a> ActivityStack</h3>
+<p>ActivityStack的说法听起来很容易和我们常说的任务栈混淆，很多人可能看到它的第一个反应是它就是我们的任务栈，然而并非如此，我们知道系统中可能同时有多个Task，一般前台就一个Task和用户进行交互，而后台中可能有多个Task存在，前后台的Task可以进行切换，AMS为了方便的管理这些Task而引入了ActivityStack，在ActivityStack内部通过ArrayList维护了一组TaskRecord。一般来说Launcher的Task属于单独的一个ActivityStack，称为Home Activity Stack，System UI如rencentActivity的Task属于一个单独ActivityStack，其他App的Task属于另一个ActivityStack。</p>
+<h4 id="结构"><a class="markdownIt-Anchor" href="#结构"></a> 结构</h4>
+<p>下面我们看看ActivityStack的结构</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">ActivityStack</span> </span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">final</span> ActivityManagerService mService;<span class="comment">//AMS引用</span></span><br><span class="line">    <span class="keyword">final</span> WindowManagerService mWindowManager;<span class="comment">//WMS引用</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * The back history of all previous (and possibly still</span></span><br><span class="line"><span class="comment">     * running) activities.  It contains #TaskRecord objects.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> ArrayList&lt;TaskRecord&gt; mTaskHistory = <span class="keyword">new</span> ArrayList&lt;TaskRecord&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * List of running activities, sorted by recent usage.</span></span><br><span class="line"><span class="comment">     * The first entry in the list is the least recently used.</span></span><br><span class="line"><span class="comment">     * It contains HistoryRecord objects.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">final</span> ArrayList&lt;ActivityRecord&gt; mLRUActivities = <span class="keyword">new</span> ArrayList&lt;ActivityRecord&gt;();</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * This is the last activity that we put into the paused state.  This is</span></span><br><span class="line"><span class="comment">     * used to determine if we need to do an activity transition while sleeping,</span></span><br><span class="line"><span class="comment">     * when we normally hold the top activity paused.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    ActivityRecord mLastPausedActivity = <span class="keyword">null</span>;<span class="comment">//记录了上次切换ActivityStack后被暂停的Activity</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Current activity that is resumed, or null if there is none.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    ActivityRecord mResumedActivity = <span class="keyword">null</span>;<span class="comment">//当前正在运行的activity，可以为null表示当前运行的activity不在该ActivityStack中</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> mStackId;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/** Run all ActivityStacks through this */</span></span><br><span class="line">    <span class="keyword">final</span> ActivityStackSupervisor mStackSupervisor;<span class="comment">//ActivityStack的管家</span></span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从其成员中我们可以看出ActivityStack维护了一组TaskRecord，以及一组最近使用的Activities，还有上次切换ActivityStack被暂停的Activity，和TaskRecord类似，多个ActivityStack同样是可以进行切换的，比如我们从桌面Launcher点击app后，会从Launcher所在的ActivityStack切换到app所在的ActivityStack，mResumedActivity表示正在运行的activity，它也可以是null，当为null时表示当前运行的Activity不在该ActivityStack。同样的，在ActivityStack中通过mStackId来唯一的标识一个ActivityStack。</p>
+<p>明白了ActivityStack的概念和用途，我们看看ASM是如何管理它的。在AMS中通过ActivityStackSupervisor来管理这些ActivityStack，从而间接的管理着TaskRecord，在ActivityStackSupervisor内部通过mHomeStack和mStacks管理着所有ActivityStack，其中mHomeStack是Launcher的TaskRecord所在的ActivityStack，而mStacks是其他的ActivityStack,它是一个ArrayList<activitystack>。</activitystack></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">ActivityManagerService</span> <span class="keyword">extends</span> <span class="title">ActivityManagerNative</span></span></span><br><span class="line"><span class="class">        <span class="keyword">implements</span> <span class="title">Watchdog</span>.<span class="title">Monitor</span>, <span class="title">BatteryStatsImpl</span>.<span class="title">BatteryCallback</span> </span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">/** Run all ActivityStacks through this */</span></span><br><span class="line">    ActivityStackSupervisor mStackSupervisor;</span><br><span class="line">    ...</span><br><span class="line">     <span class="comment">//在SystemServer启动时候 调用该main方法</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> Context <span class="title">main</span><span class="params">(<span class="keyword">int</span> factoryTest)</span> </span>&#123;</span><br><span class="line">        ...</span><br><span class="line">        ActivityManagerService m = thr.mService;</span><br><span class="line">        mSelf = m;</span><br><span class="line">        ActivityThread at = ActivityThread.systemMain();</span><br><span class="line">        mSystemThread = at;<span class="comment">//创建AMS的ActivityThread</span></span><br><span class="line">        Context context = at.getSystemContext();</span><br><span class="line">        context.setTheme(android.R.style.Theme_Holo);<span class="comment">//系统默认的context主题</span></span><br><span class="line">        m.mContext = context;</span><br><span class="line">        m.mFactoryTest = factoryTest;</span><br><span class="line">        m.mIntentFirewall = <span class="keyword">new</span> IntentFirewall(m.new IntentFirewallInterface());</span><br><span class="line"></span><br><span class="line">        m.mStackSupervisor = <span class="keyword">new</span> ActivityStackSupervisor(m, context, thr.mLooper);<span class="comment">//创建ActivityStack管家</span></span><br><span class="line"></span><br><span class="line">        m.mBatteryStatsService.publish(context);</span><br><span class="line">        m.mUsageStatsService.publish(context);</span><br><span class="line">        m.mAppOpsService.publish(context);</span><br><span class="line"></span><br><span class="line">        ...</span><br><span class="line">        <span class="keyword">return</span> context;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">ActivityStackSupervisor</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> ActivityManagerService mService;</span><br><span class="line">    <span class="comment">/** Identifier counter for all ActivityStacks */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> mLastStackId = HOME_STACK_ID;</span><br><span class="line">    <span class="comment">/** Task identifier that activities are currently being started in.  Incremented each time a</span></span><br><span class="line"><span class="comment">     * new task is created. */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> mCurTaskId = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/** The current user */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> mCurrentUser;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/** The stack containing the launcher app */</span></span><br><span class="line">    <span class="keyword">private</span> ActivityStack mHomeStack;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/** The non-home stack currently receiving input or launching the next activity. If home is</span></span><br><span class="line"><span class="comment">     * in front then mHomeStack overrides mFocusedStack.</span></span><br><span class="line"><span class="comment">     * DO NOT ACCESS DIRECTLY - It may be null, use getFocusedStack() */</span></span><br><span class="line">    <span class="keyword">private</span> ActivityStack mFocusedStack;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/** All the non-launcher stacks */</span></span><br><span class="line">    <span class="keyword">private</span> ArrayList&lt;ActivityStack&gt; mStacks = <span class="keyword">new</span> ArrayList&lt;ActivityStack&gt;();</span><br><span class="line"></span><br><span class="line">        <span class="comment">/** List of activities that are waiting for a new activity to become visible before completing</span></span><br><span class="line"><span class="comment">     * whatever operation they are supposed to do. */</span></span><br><span class="line">    <span class="keyword">final</span> ArrayList&lt;ActivityRecord&gt; mWaitingVisibleActivities = <span class="keyword">new</span> ArrayList&lt;ActivityRecord&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/** List of activities that are ready to be stopped, but waiting for the next activity to</span></span><br><span class="line"><span class="comment">     * settle down before doing so. */</span></span><br><span class="line">    <span class="keyword">final</span> ArrayList&lt;ActivityRecord&gt; mStoppingActivities = <span class="keyword">new</span> ArrayList&lt;ActivityRecord&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/** List of activities that are ready to be finished, but waiting for the previous activity to</span></span><br><span class="line"><span class="comment">     * settle down before doing so.  It contains ActivityRecord objects. */</span></span><br><span class="line">    <span class="keyword">final</span> ArrayList&lt;ActivityRecord&gt; mFinishingActivities = <span class="keyword">new</span> ArrayList&lt;ActivityRecord&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="comment">/** List of activities that are in the process of going to sleep. */</span></span><br><span class="line">    <span class="keyword">final</span> ArrayList&lt;ActivityRecord&gt; mGoingToSleepActivities = <span class="keyword">new</span> ArrayList&lt;ActivityRecord&gt;();</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>mLastStackId是所有ActivityStack的计数，这个在创建ActivityStack使用来计算stackId</li>
+<li>mCurTaskId 指当前前台的ActivityStatck对应的stackId</li>
+<li>mHomeStack 这个是launcher的TaskRecord所在的ActivityStack。</li>
+<li>mStacks 所有非Launcher的ActivityStack。这是一个ArrayList，因为非Launcher的ActivityStack可能有多个。</li>
+<li>除了以上成员，ActivityStackSupervisor还维护着多组ActivityRecord的集合，这些分别用来记录那些等待显示，或者正在停止或销毁的Activity。</li>
+</ol>
+<h4 id="创建过程"><a class="markdownIt-Anchor" href="#创建过程"></a> 创建过程</h4>
+<p>同样的ActivityStack也是按需创建的</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">int</span> <span class="title">startActivityUncheckedLocked</span><span class="params">(ActivityRecord r,</span></span></span><br><span class="line"><span class="function"><span class="params">            ActivityRecord sourceRecord, <span class="keyword">int</span> startFlags, <span class="keyword">boolean</span> doResume,</span></span></span><br><span class="line"><span class="function"><span class="params">            Bundle options)</span> </span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">if</span> (r.resultTo == <span class="keyword">null</span> &amp;&amp; !addingToTask</span><br><span class="line">                &amp;&amp; (launchFlags&amp;Intent.FLAG_ACTIVITY_NEW_TASK) != <span class="number">0</span>) &#123;</span><br><span class="line">            targetStack = adjustStackFocus(r);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">    ...            </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>实际上ActivityStack的创建时在Launcher启动时候进行的，而且是在系统启动后启动的第一个app，这个app在启动第一个Activity的时候在AMS还未有非Launcher的ActivityStack，所以需要创建一个。后面的App启动时就会找到这个ActivityStack。创建时通过ActivityStackSupervisor的adjustStackFocus方法，这个方法为要启动的Acitivity寻找前台的ActivityStack,即mFocusedStack。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//frameworks/base/services/java/com/android/server/am/ActivityStackSupervisor.java</span></span><br><span class="line"><span class="function">ActivityStack <span class="title">adjustStackFocus</span><span class="params">(ActivityRecord r)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">final</span> TaskRecord task = r.task;</span><br><span class="line">        <span class="keyword">if</span> (r.isApplicationActivity() || (task != <span class="keyword">null</span> &amp;&amp; task.isApplicationTask())) &#123;</span><br><span class="line">            <span class="keyword">if</span> (task != <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="keyword">final</span> ActivityStack taskStack = task.stack;</span><br><span class="line">                <span class="keyword">if</span> (mFocusedStack != taskStack) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (DEBUG_FOCUS || DEBUG_STACK) Slog.d(TAG,</span><br><span class="line">                            <span class="string">"adjustStackFocus: Setting focused stack to r="</span> + r + <span class="string">" task="</span> + task);</span><br><span class="line">                    mFocusedStack = taskStack.isHomeStack() ? <span class="keyword">null</span> : taskStack;</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    <span class="keyword">if</span> (DEBUG_FOCUS || DEBUG_STACK) Slog.d(TAG,</span><br><span class="line">                        <span class="string">"adjustStackFocus: Focused stack already="</span> + mFocusedStack);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">return</span> taskStack;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//如果已经有一个Focused stack直接返回即可    </span></span><br><span class="line">            <span class="keyword">if</span> (mFocusedStack != <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="keyword">if</span> (DEBUG_FOCUS || DEBUG_STACK) Slog.d(TAG,</span><br><span class="line">                        <span class="string">"adjustStackFocus: Have a focused stack="</span> + mFocusedStack);</span><br><span class="line">                <span class="keyword">return</span> mFocusedStack;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> stackNdx = mStacks.size() - <span class="number">1</span>; stackNdx &gt; <span class="number">0</span>; --stackNdx) &#123;</span><br><span class="line">                ActivityStack stack = mStacks.get(stackNdx);</span><br><span class="line">                <span class="keyword">if</span> (!stack.isHomeStack()) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (DEBUG_FOCUS || DEBUG_STACK) Slog.d(TAG,</span><br><span class="line">                            <span class="string">"adjustStackFocus: Setting focused stack="</span> + stack);</span><br><span class="line">                    mFocusedStack = stack;</span><br><span class="line">                    <span class="keyword">return</span> mFocusedStack;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//如果没有Focused Stack就创建一个    </span></span><br><span class="line">            <span class="comment">// Time to create the first app stack for this user.</span></span><br><span class="line">            <span class="keyword">int</span> stackId =</span><br><span class="line">                    mService.createStack(-<span class="number">1</span>, HOME_STACK_ID, StackBox.TASK_STACK_GOES_OVER, <span class="number">1.0f</span>);</span><br><span class="line">            <span class="keyword">if</span> (DEBUG_FOCUS || DEBUG_STACK) Slog.d(TAG, <span class="string">"adjustStackFocus: New stack r="</span> + r +</span><br><span class="line">                    <span class="string">" stackId="</span> + stackId);</span><br><span class="line">            mFocusedStack = getStack(stackId);</span><br><span class="line">            <span class="keyword">return</span> mFocusedStack;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> mHomeStack;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在adjustStackFocus方法中，对于应用Task，如果ActivityRecord对应的TaskRecord所属的ActivityStack不是当前的mFocusedStack，则将其所属的ActivityStack作为mFoucnedStack返回则直接返回，否则如果此时TaskRecord还未创建，如果mFocusedStack已经不为null，则直接返回，否则会从当前的mStacks找到一个非Home Stack作为mFocusedStack返回，如果以上都不满足，则为当前系统创建一个ActivityStack作为mFocusedStack返回。这是通过调用AMS的createStack方法来完成的结果返回stackId。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"> <span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">createStack</span><span class="params">(<span class="keyword">int</span> taskId, <span class="keyword">int</span> relativeStackBoxId, <span class="keyword">int</span> position, <span class="keyword">float</span> weight)</span> </span>&#123;</span><br><span class="line">    enforceCallingPermission(android.Manifest.permission.MANAGE_ACTIVITY_STACKS,</span><br><span class="line">            <span class="string">"createStack()"</span>);</span><br><span class="line">    <span class="keyword">if</span> (DEBUG_STACK) Slog.d(TAG, <span class="string">"createStack: taskId="</span> + taskId + <span class="string">" relStackBoxId="</span> +</span><br><span class="line">            relativeStackBoxId + <span class="string">" position="</span> + position + <span class="string">" weight="</span> + weight);</span><br><span class="line">    <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">        <span class="keyword">long</span> ident = Binder.clearCallingIdentity();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">int</span> stackId = mStackSupervisor.createStack();</span><br><span class="line">            mWindowManager.createStack(stackId, relativeStackBoxId, position, weight);</span><br><span class="line">            <span class="keyword">if</span> (taskId &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                moveTaskToStack(taskId, stackId, <span class="keyword">true</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> stackId;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            Binder.restoreCallingIdentity(ident);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>createStack是作为AMS的Binder接口提供给使用者的，这里会进一步通过ActivityStackSupervisor的createStack方法创建。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">createStack</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (++mLastStackId &lt;= HOME_STACK_ID) &#123;</span><br><span class="line">            mLastStackId = HOME_STACK_ID + <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (getStack(mLastStackId) == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    mStacks.add(<span class="keyword">new</span> ActivityStack(mService, mContext, mLooper, mLastStackId));</span><br><span class="line">    <span class="keyword">return</span> mLastStackId;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过mLaskStackId来计算要创建的ActivityStack对应的id，然后将新创建的实例添加到mStacks中。</p>
+<h4 id="task切换-2"><a class="markdownIt-Anchor" href="#task切换-2"></a> Task切换</h4>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">int</span> <span class="title">startActivityUncheckedLocked</span><span class="params">(ActivityRecord r,</span></span></span><br><span class="line"><span class="function"><span class="params">            ActivityRecord sourceRecord, <span class="keyword">int</span> startFlags, <span class="keyword">boolean</span> doResume,</span></span></span><br><span class="line"><span class="function"><span class="params">            Bundle options)</span> </span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">if</span> (((launchFlags&amp;Intent.FLAG_ACTIVITY_NEW_TASK) != <span class="number">0</span> &amp;&amp;</span><br><span class="line">                (launchFlags&amp;Intent.FLAG_ACTIVITY_MULTIPLE_TASK) == <span class="number">0</span>)</span><br><span class="line">                || r.launchMode == ActivityInfo.LAUNCH_SINGLE_TASK</span><br><span class="line">                || r.launchMode == ActivityInfo.LAUNCH_SINGLE_INSTANCE) &#123;</span><br><span class="line">            <span class="comment">// If bring to front is requested, and no result is requested, and</span></span><br><span class="line">            <span class="comment">// we can find a task that was started with this same</span></span><br><span class="line">            <span class="comment">// component, then instead of launching bring that one to the front.</span></span><br><span class="line">            <span class="keyword">if</span> (r.resultTo == <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="comment">// See if there is a task to bring to the front.  If this is</span></span><br><span class="line">                <span class="comment">// a SINGLE_INSTANCE activity, there can be one and only one</span></span><br><span class="line">                <span class="comment">// instance of it in the history, and it is always in its own</span></span><br><span class="line">                <span class="comment">// unique task, so we do a special search.</span></span><br><span class="line">                ActivityRecord intentActivity = r.launchMode != ActivityInfo.LAUNCH_SINGLE_INSTANCE</span><br><span class="line">                        ? findTaskLocked(r)</span><br><span class="line">                        : findActivityLocked(intent, r.info);</span><br><span class="line">                <span class="keyword">if</span> (intentActivity != <span class="keyword">null</span>) &#123;<span class="comment">//找到对应TaskRecord栈顶的ActivityRecord</span></span><br><span class="line">                    <span class="keyword">if</span> (r.task == <span class="keyword">null</span>) &#123;</span><br><span class="line">                        r.task = intentActivity.task;<span class="comment">//设置r的TaskRecord为该Task</span></span><br><span class="line">                    &#125;</span><br><span class="line">                    targetStack = intentActivity.task.stack;<span class="comment">//设置ActivityStack为该Stack</span></span><br><span class="line">                    ...</span><br><span class="line">                    <span class="comment">// If the target task is not in the front, then we need</span></span><br><span class="line">                    <span class="comment">// to bring it to the front...  except...  well, with</span></span><br><span class="line">                    <span class="comment">// SINGLE_TASK_LAUNCH it's not entirely clear.  We'd like</span></span><br><span class="line">                    <span class="comment">// to have the same behavior as if a new instance was</span></span><br><span class="line">                    <span class="comment">// being started, which means not bringing it to the front</span></span><br><span class="line">                    <span class="comment">// if the caller is not itself in the front.</span></span><br><span class="line">                    <span class="keyword">final</span> ActivityStack lastStack = getLastStack();</span><br><span class="line">                    ActivityRecord curTop = lastStack == <span class="keyword">null</span>?</span><br><span class="line">                            <span class="keyword">null</span> : lastStack.topRunningNonDelayedActivityLocked(notTop);<span class="comment">//取到它顶部的ActivityRecord</span></span><br><span class="line">                    <span class="keyword">if</span> (curTop != <span class="keyword">null</span> &amp;&amp; (curTop.task != intentActivity.task ||</span><br><span class="line">                            curTop.task != lastStack.topTask())) &#123;<span class="comment">//比较当前的task和复用的task 如果不是同一个就需要将复用的task移动到前端</span></span><br><span class="line">                        r.intent.addFlags(Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);</span><br><span class="line">                        <span class="keyword">if</span> (sourceRecord == <span class="keyword">null</span> || (sourceStack.topActivity() != <span class="keyword">null</span> &amp;&amp;</span><br><span class="line">                                sourceStack.topActivity().task == sourceRecord.task)) &#123;</span><br><span class="line">                            <span class="comment">// We really do want to push this one into the</span></span><br><span class="line">                            <span class="comment">// user's face, right now.</span></span><br><span class="line">                            movedHome = <span class="keyword">true</span>;</span><br><span class="line">                            targetStack.moveTaskToFrontLocked(intentActivity.task, r, options);</span><br><span class="line">                            ...</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                    </span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Task的切换同样是在startActivityUncheckedLocked中进行的，首先我们通过findTaskLocked为要启动的activity寻找一个合适的TaskRecord，通过initActivity标识，找到后这个TaskRecord就是要切换到前台的Task，通过getLastStack取到上次切换的ActivityStack，然后取到它顶部的ActivityRecord，对于Launcher启动来说，这个就是非Launcher Stack，它顶部的Task可能不是initAcitivty标识的那个，因为可能之前我们启动的app的TaskRecord和它是不同的，即curTop.task != intentActivity.task，那么这时候我们需要为r设置Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT，同时通过moveTaskToFrontLocked将Task移动到ActivityStack的顶部。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">moveTaskToFrontLocked</span><span class="params">(TaskRecord tr, ActivityRecord reason, Bundle options)</span> </span>&#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> numTasks = mTaskHistory.size();<span class="comment">//task的数目</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> index = mTaskHistory.indexOf(tr);<span class="comment">//当前tr在Stack中的位置</span></span><br><span class="line">    ...</span><br><span class="line">    mStackSupervisor.moveHomeStack(isHomeStack());</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Shift all activities with this task up to the top</span></span><br><span class="line">    <span class="comment">// of the stack, keeping them in the same internal order.</span></span><br><span class="line">    insertTaskAtTop(tr);<span class="comment">//移动Task到Stack顶部</span></span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    mWindowManager.moveTaskToTop(tr.taskId);</span><br><span class="line"></span><br><span class="line">    mStackSupervisor.resumeTopActivitiesLocked();</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>moveTaskToFrontLocked通过insertTaskAtTop将TaskRecord移动到顶部</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">insertTaskAtTop</span><span class="params">(TaskRecord task)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// If this is being moved to the top by another activity or being launched from the home</span></span><br><span class="line">    <span class="comment">// activity, set mOnTopOfHome accordingly.</span></span><br><span class="line">    ActivityStack lastStack = mStackSupervisor.getLastStack();</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> fromHome = lastStack == <span class="keyword">null</span> ? <span class="keyword">true</span> : lastStack.isHomeStack();</span><br><span class="line">    <span class="keyword">if</span> (!isHomeStack() &amp;&amp; (fromHome || topTask() != task)) &#123;</span><br><span class="line">        task.mOnTopOfHome = fromHome;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    mTaskHistory.remove(task);<span class="comment">//先删除</span></span><br><span class="line">    <span class="comment">// Now put task at top.</span></span><br><span class="line">    <span class="keyword">int</span> stackNdx = mTaskHistory.size();</span><br><span class="line">    <span class="keyword">if</span> (task.userId != mCurrentUser) &#123;<span class="comment">//push非当前用户task到当前task的后面</span></span><br><span class="line">        <span class="comment">// Put non-current user tasks below current user tasks.</span></span><br><span class="line">        <span class="keyword">while</span> (--stackNdx &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (mTaskHistory.get(stackNdx).userId != mCurrentUser) &#123;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        ++stackNdx;</span><br><span class="line">    &#125;</span><br><span class="line">    mTaskHistory.add(stackNdx, task);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>insertTaskAtTop先从mTaskHistory中删除该TaskRecord,然后计算添加的位置stackNdx，最后添加到mTaskHistory中，这里最顶部的Task一般存放在最末尾。</p>
+<h3 id="总结"><a class="markdownIt-Anchor" href="#总结"></a> 总结</h3>
+<p>从以上的分析中，我们知道了ActivityRecord、TaskRecord以及ActivityStack之间的关系及作用，它们之间的组织关系实际上是包含的关系，即AcitivtyStack包含了TaskRecord的集合，TaskRecord包含着ActivityRecord的集合，同时反向的，ActivityRecord中记录了它所属的TaskRecord，TaskRecord记录着它所属的ActivityStack。他们三者贯穿AMS管理Activity的整个逻辑处理，其中ActivityRecord是Activity组件在AMS中的存在的形式，它和Activity实例是一一对应的关系(注意这里描述的是实例)，TaskRecord用于描述Task,即一组Activity，这组Activity以栈的形式组织起来，每个启动的Activity即ActivityRecord都应该要有所属的TaskRecord。ActivityStack是系统中用于管理TaskRecord的，系统中可能有多组ActivityStack，大体可以分为Launcher ActivityStack和非Launcher ActivityStack，我们启动的App对应的TaskRecord由非Launcher ActivityStack管理，它是在系统启动第一个app时创建的。</p>
+<p>以上都是个人的理解,有描述不当的地方，烦请不吝赐教~</p>
+<h3 id="参考"><a class="markdownIt-Anchor" href="#参考"></a> 参考</h3>
+<p>Understand Tasks and Back Stack<br>
+<a href="https://developer.android.com/guide/components/activities/tasks-and-back-stack" target="_blank" rel="noopener">https://developer.android.com/guide/components/activities/tasks-and-back-stack</a></p>
+<p>AOSP</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpayimg.png" alt="esli 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipayimg.png" alt="esli 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Android/" rel="tag"># Android</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/[object Object]/aosp-memory-mgr/" rel="next" title="Android 的内存管理">
+                <i class="fa fa-chevron-left"></i> Android 的内存管理
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/[object Object]/android-library-okhttp3-1-src/" rel="prev" title="OkHttp源码分析(一)">
+                OkHttp源码分析(一) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/uploads/avatar.png"
+                alt="esli" />
+            
+              <p class="site-author-name" itemprop="name">esli</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">61</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#activitymanagerservice"><span class="nav-number">1.</span> <span class="nav-text"> ActivityManagerService</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#activityrecord"><span class="nav-number">2.</span> <span class="nav-text"> ActivityRecord</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#类结构说明"><span class="nav-number">2.1.</span> <span class="nav-text"> 类结构说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#activityrecord的创建"><span class="nav-number">2.2.</span> <span class="nav-text"> ActivityRecord的创建</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#taskrecord"><span class="nav-number">3.</span> <span class="nav-text"> TaskRecord</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#task切换"><span class="nav-number">3.1.</span> <span class="nav-text"> Task切换</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#启动模式launchmode"><span class="nav-number">3.2.</span> <span class="nav-text"> 启动模式launchMode</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#taskrecord的实现"><span class="nav-number">3.3.</span> <span class="nav-text"> TaskRecord的实现</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#taskrecord的创建"><span class="nav-number">3.4.</span> <span class="nav-text"> TaskRecord的创建</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#taskrecord的复用"><span class="nav-number">3.5.</span> <span class="nav-text"> TaskRecord的复用</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#activitystack"><span class="nav-number">4.</span> <span class="nav-text"> ActivityStack</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#结构"><span class="nav-number">4.1.</span> <span class="nav-text"> 结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#创建过程"><span class="nav-number">4.2.</span> <span class="nav-text"> 创建过程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#task切换-2"><span class="nav-number">4.3.</span> <span class="nav-text"> Task切换</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#总结"><span class="nav-number">5.</span> <span class="nav-text"> 总结</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#参考"><span class="nav-number">6.</span> <span class="nav-text"> 参考</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">esli</span>
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("jBNLE1XrpdNfIpNnvp02BNFi-gzGzoHsz", "1KETbc2T1LA8C2oPKVwpbzVm");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

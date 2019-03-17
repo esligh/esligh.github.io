@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Android," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="View的绘制流程是Android GUI系统中的关键部分，因为最终view中绘制的内容是要呈现给用户的。本篇基于Android4.4(KitKat)将对view绘制流程做一个全面的分析。  绘制缓冲区 在View绘制流程中首先是需要一块缓冲区提供给应用程序进行内容绘制的， 这个缓冲区在上层以Surface的形式提供给使用者，这个Surface就是view绘制流程的绘图表面。在&amp;lt;Surfac">
+<meta name="keywords" content="Android">
+<meta property="og:type" content="article">
+<meta property="og:title" content="View绘制流程分析">
+<meta property="og:url" content="http://esligh.github.io/[object Object]/aosp-performtraversal-src/index.html">
+<meta property="og:site_name" content="esli&#39;s Blog">
+<meta property="og:description" content="View的绘制流程是Android GUI系统中的关键部分，因为最终view中绘制的内容是要呈现给用户的。本篇基于Android4.4(KitKat)将对view绘制流程做一个全面的分析。  绘制缓冲区 在View绘制流程中首先是需要一块缓冲区提供给应用程序进行内容绘制的， 这个缓冲区在上层以Surface的形式提供给使用者，这个Surface就是view绘制流程的绘图表面。在&amp;lt;Surfac">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-03-17T09:30:15.273Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="View绘制流程分析">
+<meta name="twitter:description" content="View的绘制流程是Android GUI系统中的关键部分，因为最终view中绘制的内容是要呈现给用户的。本篇基于Android4.4(KitKat)将对view绘制流程做一个全面的分析。  绘制缓冲区 在View绘制流程中首先是需要一块缓冲区提供给应用程序进行内容绘制的， 这个缓冲区在上层以Surface的形式提供给使用者，这个Surface就是view绘制流程的绘图表面。在&amp;lt;Surfac">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://esligh.github.io/[object Object]/aosp-performtraversal-src/"/>
+
+
+
+
+
+  <title>View绘制流程分析 | esli's Blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">esli's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">day day up</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://esligh.github.io/[object Object]/aosp-performtraversal-src/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="esli">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="esli's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">View绘制流程分析</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-02T10:26:32+08:00">
+                2018-01-02
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AOSP/" itemprop="url" rel="index">
+                    <span itemprop="name">AOSP</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+             <span id="/[object Object]/aosp-performtraversal-src/" class="leancloud_visitors" data-flag-title="View绘制流程分析">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>View的绘制流程是Android GUI系统中的关键部分，因为最终view中绘制的内容是要呈现给用户的。本篇基于Android4.4(KitKat)将对view绘制流程做一个全面的分析。</p>
+<h3 id="绘制缓冲区"><a class="markdownIt-Anchor" href="#绘制缓冲区"></a> 绘制缓冲区</h3>
+<p>在View绘制流程中首先是需要一块缓冲区提供给应用程序进行内容绘制的， 这个缓冲区在上层以Surface的形式提供给使用者，这个Surface就是view绘制流程的绘图表面。在&lt;Surface绘图缓冲区的创建流程&gt;<br>
+一篇中我们介绍了Surface绘图缓冲区的绘制。所以关于这部分的内容不再做介绍。</p>
+<h3 id="绘制的时机"><a class="markdownIt-Anchor" href="#绘制的时机"></a> 绘制的时机</h3>
+<p>在&lt;Activity启动分析(二)&gt;一篇中，我们知道在handleResumeActivity通过addView添加view，将window加入到WMS后，会通过updateViewLayout更新视图</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">frameworks/base/core/java/android/view/WindowManagerGlobal.java</span><br><span class="line"> <span class="comment">//更新视图</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">updateViewLayout</span><span class="params">(View view, ViewGroup.LayoutParams params)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (view == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"view must not be null"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (!(params <span class="keyword">instanceof</span> WindowManager.LayoutParams)) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"Params must be WindowManager.LayoutParams"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> WindowManager.LayoutParams wparams = (WindowManager.LayoutParams)params;</span><br><span class="line"></span><br><span class="line">    view.setLayoutParams(wparams);<span class="comment">//设置view布局参数</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">synchronized</span> (mLock) &#123;</span><br><span class="line">        <span class="keyword">int</span> index = findViewLocked(view, <span class="keyword">true</span>);</span><br><span class="line">        ViewRootImpl root = mRoots.get(index);<span class="comment">//找到对应的viewroot</span></span><br><span class="line">        mParams.remove(index);<span class="comment">//移除之前的params</span></span><br><span class="line">        mParams.add(index, wparams);<span class="comment">//添加新的params</span></span><br><span class="line">        root.setLayoutParams(wparams, <span class="keyword">false</span>);<span class="comment">//通过root设置参数 false代表view已经添加过 这里会对view树重新绘制</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">setLayoutParams</span><span class="params">(WindowManager.LayoutParams attrs, <span class="keyword">boolean</span> newView)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">        ……</span><br><span class="line">        scheduleTraversals();<span class="comment">//设置完成后就准备绘制</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在root.setLayoutParams中会通过scheduleTraversals()绘制view。view树的绘制流程是在ViewRootImpl中完成的。</p>
+<h3 id="绘制流程"><a class="markdownIt-Anchor" href="#绘制流程"></a> 绘制流程</h3>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">scheduleTraversals</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!mTraversalScheduled) &#123;</span><br><span class="line">        mTraversalScheduled = <span class="keyword">true</span>;</span><br><span class="line">        mTraversalBarrier = mHandler.getLooper().postSyncBarrier();</span><br><span class="line">        mChoreographer.postCallback(</span><br><span class="line">                Choreographer.CALLBACK_TRAVERSAL, mTraversalRunnable, <span class="keyword">null</span>);</span><br><span class="line">        <span class="comment">//请求同步信号，信号到来时会调用mTraversalRunnable执行doTravels</span></span><br><span class="line">        scheduleConsumeBatchedInput();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">TraversalRunnable</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        doTraversal();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">final</span> TraversalRunnable mTraversalRunnable = <span class="keyword">new</span> TraversalRunnable();</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">doTraversal</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mTraversalScheduled) &#123;</span><br><span class="line">        mTraversalScheduled = <span class="keyword">false</span>;</span><br><span class="line">        mHandler.getLooper().removeSyncBarrier(mTraversalBarrier);</span><br><span class="line"></span><br><span class="line">        ……</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            performTraversals();<span class="comment">//真正的绘制流程是从这里开始的</span></span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            Trace.traceEnd(Trace.TRACE_TAG_VIEW);</span><br><span class="line">        &#125;</span><br><span class="line">        ……</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>绘制流程需要配合Vsync信号来进行，这个是通过Choreographer来进行的，在scheduleTraversals中通过mChoreographer请求同步信号，<br>
+信号到来时会调用mTraversalRunnable的doTraversal。在doTraversal中调用performTraversals来开始真正的绘制流程。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">performTraversals</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ……</span><br><span class="line">    relayoutResult = relayoutWindow(params, viewVisibility, insetsPending);</span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">if</span> (!mStopped) &#123;</span><br><span class="line">        <span class="keyword">boolean</span> focusChangedDueToTouchMode = ensureTouchModeLocally(</span><br><span class="line">                (relayoutResult&amp;WindowManagerGlobal.RELAYOUT_RES_IN_TOUCH_MODE) != <span class="number">0</span>);</span><br><span class="line">        <span class="keyword">if</span> (focusChangedDueToTouchMode || mWidth != host.getMeasuredWidth()</span><br><span class="line">                || mHeight != host.getMeasuredHeight() || contentInsetsChanged) &#123;</span><br><span class="line">            <span class="comment">//获得view宽高的测量规格，lp.width和lp.height表示DecorView根布局宽和高</span></span><br><span class="line">            <span class="keyword">int</span> childWidthMeasureSpec = getRootMeasureSpec(mWidth, lp.width);</span><br><span class="line">            <span class="keyword">int</span> childHeightMeasureSpec = getRootMeasureSpec(mHeight, lp.height);</span><br><span class="line">            performMeasure(childWidthMeasureSpec, childHeightMeasureSpec);<span class="comment">//开始执行测量操作</span></span><br><span class="line">            ……</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> didLayout = layoutRequested &amp;&amp; !mStopped;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">boolean</span> triggerGlobalLayoutListener = didLayout</span><br><span class="line">            || attachInfo.mRecomputeGlobalAttributes;</span><br><span class="line">    <span class="keyword">if</span> (didLayout) &#123;</span><br><span class="line">        performLayout(lp, desiredWindowWidth, desiredWindowHeight);</span><br><span class="line">        ……</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line"></span><br><span class="line">    <span class="keyword">boolean</span> cancelDraw = attachInfo.mTreeObserver.dispatchOnPreDraw() ||</span><br><span class="line">                viewVisibility != View.VISIBLE;</span><br><span class="line">    <span class="keyword">if</span> (!cancelDraw &amp;&amp; !newSurface) &#123;<span class="comment">//既没有取消绘制，也没有创建新的平面</span></span><br><span class="line">        <span class="keyword">if</span> (!skipDraw || mReportNextDraw) &#123;<span class="comment">//</span></span><br><span class="line">            <span class="keyword">if</span> (mPendingTransitions != <span class="keyword">null</span> &amp;&amp; mPendingTransitions.size() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; mPendingTransitions.size(); ++i) &#123;</span><br><span class="line">                    mPendingTransitions.get(i).startChangingAnimations();</span><br><span class="line">                &#125;</span><br><span class="line">                mPendingTransitions.clear();</span><br><span class="line">            &#125;</span><br><span class="line">            performDraw();<span class="comment">//开始执行绘制操作</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125; </span><br><span class="line">    ……</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在performTraversals中会做很多事情，这里我们主要绘制的主要流程，即measure,layout和draw的过程，在&lt;Surface绘图缓冲区的创建流程&gt;一篇中我们知道了在绘制之前是需要准备画布的，这个画布就是ViewRootImpl的mSurface，它会通过relayoutWindow创建。</p>
+<h3 id="measure过程"><a class="markdownIt-Anchor" href="#measure过程"></a> measure过程</h3>
+<p>measure过程主要进行view树中所有的view的大小的测量，我们看到测量并不一定会在performTraversals中进行，而是需要满足一定的条件：</p>
+<ol>
+<li>Window的状态不能为stopped，即mStopped=false</li>
+<li>窗口的触摸模式发生了变化，由此引发了Activity窗口当前获焦点的控件发生了变化，即变量focusChangedDueToTouchMode的值等于true。这个检查是通过调用ensureTouchModeLocally来实现的。</li>
+<li>窗口前面测量出来的宽度host.mMeasuredWidth和高度host.mMeasuredHeight不等于WindowManagerService服务计算出来的宽度mWidth和高度mHeight。这里的host为DecorView</li>
+<li>窗口的内容区域边衬大小和可见区域边衬大小发生了变化， 即contentInsetsChanged的值等于true</li>
+</ol>
+<p>只有满足上述条件，measure流程才会进行，在执行measure前，首先会根据DecorView的宽高获取测量规格MesaureSpec，它的前两位为mode，有三种，分别为：</p>
+<ul>
+<li>UPSPECIFIED : 父容器对于子容器没有任何限制,子容器想要多大就多大</li>
+<li>EXACTLY: 父容器已经为子容器设置了尺寸,子容器应当服从这些边界,不论子容器想要多大的空间。</li>
+<li>AT_MOST：子容器可以是声明大小内的任意大小</li>
+</ul>
+<p>这个测量规格会传递给子view,子view结合自身LayoutParams算出view的大小。子view测量完成后，通过setMeasureDimentions将测量结果保存。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">performMeasure</span><span class="params">(<span class="keyword">int</span> childWidthMeasureSpec, <span class="keyword">int</span> childHeightMeasureSpec)</span> </span>&#123;</span><br><span class="line">    Trace.traceBegin(Trace.TRACE_TAG_VIEW, <span class="string">"measure"</span>);</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        mView.measure(childWidthMeasureSpec, childHeightMeasureSpec);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        Trace.traceEnd(Trace.TRACE_TAG_VIEW);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在performMeasure之前会通过getRootMeasureSpec获取根view的MeasureSpec，它默认为屏幕的大小，<br>
+这里的mView是DecorView，它是一个FrameLayout，通过它我们来看看测量过程是如何进行的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">measure</span><span class="params">(<span class="keyword">int</span> widthMeasureSpec, <span class="keyword">int</span> heightMeasureSpec)</span> </span>&#123;</span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">int</span> cacheIndex = (mPrivateFlags &amp; PFLAG_FORCE_LAYOUT) == PFLAG_FORCE_LAYOUT ? -<span class="number">1</span> :</span><br><span class="line">                    mMeasureCache.indexOfKey(key);</span><br><span class="line">    <span class="keyword">if</span> (cacheIndex &lt; <span class="number">0</span> || sIgnoreMeasureCache) &#123;</span><br><span class="line">        <span class="comment">// measure ourselves, this should set the measured dimension flag back</span></span><br><span class="line">        onMeasure(widthMeasureSpec, heightMeasureSpec);</span><br><span class="line">        mPrivateFlags3 &amp;= ~PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">long</span> value = mMeasureCache.valueAt(cacheIndex);</span><br><span class="line">        <span class="comment">// Casting a long to int drops the high 32 bits, no mask needed</span></span><br><span class="line">        setMeasuredDimension((<span class="keyword">int</span>) (value &gt;&gt; <span class="number">32</span>), (<span class="keyword">int</span>) value);</span><br><span class="line">        mPrivateFlags3 |= PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT;</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>measure方法是在view中定义的，这里需要注意measure是一个final方法，在内部它通过调用onMeasure来完成实际的测量工作。如果我们需要自定义view，就需要覆盖onMeasure在其中完成view大小的测量，我们看下默认的onMeasure实现：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onMeasure</span><span class="params">(<span class="keyword">int</span> widthMeasureSpec, <span class="keyword">int</span> heightMeasureSpec)</span> </span>&#123;</span><br><span class="line">    setMeasuredDimension(getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec),</span><br><span class="line">            getDefaultSize(getSuggestedMinimumHeight(), heightMeasureSpec));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">setMeasuredDimension</span><span class="params">(<span class="keyword">int</span> measuredWidth, <span class="keyword">int</span> measuredHeight)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">boolean</span> optical = isLayoutModeOptical(<span class="keyword">this</span>);</span><br><span class="line">    <span class="keyword">if</span> (optical != isLayoutModeOptical(mParent)) &#123;</span><br><span class="line">        Insets insets = getOpticalInsets();</span><br><span class="line">        <span class="keyword">int</span> opticalWidth  = insets.left + insets.right;</span><br><span class="line">        <span class="keyword">int</span> opticalHeight = insets.top  + insets.bottom;</span><br><span class="line"></span><br><span class="line">        measuredWidth  += optical ? opticalWidth  : -opticalWidth;</span><br><span class="line">        measuredHeight += optical ? opticalHeight : -opticalHeight;</span><br><span class="line">    &#125;</span><br><span class="line">    mMeasuredWidth = measuredWidth;</span><br><span class="line">    mMeasuredHeight = measuredHeight;</span><br><span class="line"></span><br><span class="line">    mPrivateFlags |= PFLAG_MEASURED_DIMENSION_SET;<span class="comment">//标记已经调用了setMeasuredDimension</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>onMeasure默认通过setMeasuredDimension设置mMeasuredWidth和mMeasuredHeight的值。通过这个方法完成测量过程。默认值是通过getDefaultSize计算得到的,它的第一个参数是通过getSuggestedMinimumxx获取到的，用来获取建议的最小宽高。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">int</span> <span class="title">getSuggestedMinimumHeight</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (mBackground == <span class="keyword">null</span>) ? mMinHeight : max(mMinHeight, mBackground.getMinimumHeight());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">getDefaultSize</span><span class="params">(<span class="keyword">int</span> size, <span class="keyword">int</span> measureSpec)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> result = size;</span><br><span class="line">    <span class="keyword">int</span> specMode = MeasureSpec.getMode(measureSpec);</span><br><span class="line">    <span class="keyword">int</span> specSize = MeasureSpec.getSize(measureSpec);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">switch</span> (specMode) &#123;</span><br><span class="line">    <span class="keyword">case</span> MeasureSpec.UNSPECIFIED:</span><br><span class="line">        result = size;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> MeasureSpec.AT_MOST:</span><br><span class="line">    <span class="keyword">case</span> MeasureSpec.EXACTLY:</span><br><span class="line">        result = specSize;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个建议的最小高度值由layout:minHeight 和 BackGround的最小高度决定，最小宽度值也是类似。getDefaultSize会通过父view传递给view的MeasureSpec来计算最终宽高。对于MeasureSpec.AT_MOST和MeasureSpec.EXACTLY两种最常见的模式，最终的大小是由specSize,也就是MeasureSpec决定的。而不是由建议值。</p>
+<h3 id="layout过程"><a class="markdownIt-Anchor" href="#layout过程"></a> layout过程</h3>
+<p>在测量完view大小后，通过layout来确定view的位置，layout流程需满足下面的条件：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">boolean</span> didLayout = layoutRequested &amp;&amp; !mStopped;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>通过requestLayout发起过layout请求</li>
+<li>Window的状态不为stopped</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">performLayout</span><span class="params">(WindowManager.LayoutParams lp, <span class="keyword">int</span> desiredWindowWidth,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">int</span> desiredWindowHeight)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> View host = mView;</span><br><span class="line"></span><br><span class="line">    host.layout(<span class="number">0</span>, <span class="number">0</span>, host.getMeasuredWidth(), host.getMeasuredHeight());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同样是从view根部开始，我们看看DecorView的layout实现</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">frameworks/base/core/java/android/view/ViewGroup.java</span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">layout</span><span class="params">(<span class="keyword">int</span> l, <span class="keyword">int</span> t, <span class="keyword">int</span> r, <span class="keyword">int</span> b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!mSuppressLayout &amp;&amp; (mTransition == <span class="keyword">null</span> || !mTransition.isChangingLayout())) &#123;</span><br><span class="line">        <span class="keyword">if</span> (mTransition != <span class="keyword">null</span>) &#123;</span><br><span class="line">            mTransition.layoutChange(<span class="keyword">this</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">super</span>.layout(l, t, r, b);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// record the fact that we noop'd it; request layout when transition finishes</span></span><br><span class="line">        mLayoutCalledWhileSuppressed = <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果LayoutTransitiond动画未执行，那么直接调用View的layout，否则设置mLayoutCalledWhileSuppressed = true，等待动画完成后再进行requestyLayout。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">layout</span><span class="params">(<span class="keyword">int</span> l, <span class="keyword">int</span> t, <span class="keyword">int</span> r, <span class="keyword">int</span> b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> ((mPrivateFlags3 &amp; PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT) != <span class="number">0</span>) &#123;</span><br><span class="line">        onMeasure(mOldWidthMeasureSpec, mOldHeightMeasureSpec);</span><br><span class="line">        mPrivateFlags3 &amp;= ~PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> oldL = mLeft;</span><br><span class="line">    <span class="keyword">int</span> oldT = mTop;</span><br><span class="line">    <span class="keyword">int</span> oldB = mBottom;</span><br><span class="line">    <span class="keyword">int</span> oldR = mRight;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">boolean</span> changed = isLayoutModeOptical(mParent) ?</span><br><span class="line">            setOpticalFrame(l, t, r, b) : setFrame(l, t, r, b);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (changed || (mPrivateFlags &amp; PFLAG_LAYOUT_REQUIRED) == PFLAG_LAYOUT_REQUIRED) &#123;<span class="comment">//如果布局     发生了变化 则还需要对子视图进行重新布局</span></span><br><span class="line">        onLayout(changed, l, t, r, b);</span><br><span class="line">        mPrivateFlags &amp;= ~PFLAG_LAYOUT_REQUIRED;</span><br><span class="line"></span><br><span class="line">        ListenerInfo li = mListenerInfo;</span><br><span class="line">        <span class="keyword">if</span> (li != <span class="keyword">null</span> &amp;&amp; li.mOnLayoutChangeListeners != <span class="keyword">null</span>) &#123;</span><br><span class="line">            ArrayList&lt;OnLayoutChangeListener&gt; listenersCopy =</span><br><span class="line">                    (ArrayList&lt;OnLayoutChangeListener&gt;)li.mOnLayoutChangeListeners.clone();</span><br><span class="line">            <span class="keyword">int</span> numListeners = listenersCopy.size();</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; numListeners; ++i) &#123;</span><br><span class="line">                listenersCopy.get(i).onLayoutChange(<span class="keyword">this</span>, l, t, r, b, oldL, oldT, oldR, oldB);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    mPrivateFlags &amp;= ~PFLAG_FORCE_LAYOUT;</span><br><span class="line">    mPrivateFlags3 |= PFLAG3_IS_LAID_OUT;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>layout的布局是通过onLayout来实现的，在View中onLayout的实现是空的实现,因为view是通过其父view即viewGroup进行layout的</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onLayout</span><span class="params">(<span class="keyword">boolean</span> changed, <span class="keyword">int</span> left, <span class="keyword">int</span> top, <span class="keyword">int</span> right, <span class="keyword">int</span> bottom)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>ViewGroup的onLayout,它是个抽象方法，所有ViewGroup的子类都需要实现此方法以完成其子view的布局。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title">onLayout</span><span class="params">(<span class="keyword">boolean</span> changed,</span></span></span><br><span class="line"><span class="function"><span class="params">    <span class="keyword">int</span> l, <span class="keyword">int</span> t, <span class="keyword">int</span> r, <span class="keyword">int</span> b)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>我们通过以LinearLayout为例说明ViewGroup是如何进行子view的布局的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onLayout</span><span class="params">(<span class="keyword">boolean</span> changed, <span class="keyword">int</span> l, <span class="keyword">int</span> t, <span class="keyword">int</span> r, <span class="keyword">int</span> b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mOrientation == VERTICAL) &#123;</span><br><span class="line">        layoutVertical(l, t, r, b);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        layoutHorizontal(l, t, r, b);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>根据不同的oriention来调用不同的布局方法，这里我们看看layoutVertical。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">layoutVertical</span><span class="params">(<span class="keyword">int</span> left, <span class="keyword">int</span> top, <span class="keyword">int</span> right, <span class="keyword">int</span> bottom)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">int</span> paddingLeft = mPaddingLeft;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> childTop;</span><br><span class="line">    <span class="keyword">int</span> childLeft;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// Where right end of child should go</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> width = right - left;</span><br><span class="line">    <span class="keyword">int</span> childRight = width - mPaddingRight;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// Space available for child</span></span><br><span class="line">    <span class="keyword">int</span> childSpace = width - paddingLeft - mPaddingRight;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> count = getVirtualChildCount();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> majorGravity = mGravity &amp; Gravity.VERTICAL_GRAVITY_MASK;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> minorGravity = mGravity &amp; Gravity.RELATIVE_HORIZONTAL_GRAVITY_MASK;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">switch</span> (majorGravity) &#123;</span><br><span class="line">        <span class="keyword">case</span> Gravity.BOTTOM:</span><br><span class="line">            <span class="comment">// mTotalLength contains the padding already</span></span><br><span class="line">            childTop = mPaddingTop + bottom - top - mTotalLength;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// mTotalLength contains the padding already</span></span><br><span class="line">        <span class="keyword">case</span> Gravity.CENTER_VERTICAL:</span><br><span class="line">            childTop = mPaddingTop + (bottom - top - mTotalLength) / <span class="number">2</span>;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">case</span> Gravity.TOP:</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            childTop = mPaddingTop;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">        <span class="keyword">final</span> View child = getVirtualChildAt(i);</span><br><span class="line">        <span class="keyword">if</span> (child == <span class="keyword">null</span>) &#123;</span><br><span class="line">            childTop += measureNullChild(i);</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (child.getVisibility() != GONE) &#123;</span><br><span class="line">            <span class="keyword">final</span> <span class="keyword">int</span> childWidth = child.getMeasuredWidth();</span><br><span class="line">            <span class="keyword">final</span> <span class="keyword">int</span> childHeight = child.getMeasuredHeight();</span><br><span class="line">            </span><br><span class="line">            <span class="keyword">final</span> LinearLayout.LayoutParams lp =</span><br><span class="line">                    (LinearLayout.LayoutParams) child.getLayoutParams();</span><br><span class="line">            </span><br><span class="line">            <span class="keyword">int</span> gravity = lp.gravity;</span><br><span class="line">            <span class="keyword">if</span> (gravity &lt; <span class="number">0</span>) &#123;</span><br><span class="line">                gravity = minorGravity;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">final</span> <span class="keyword">int</span> layoutDirection = getLayoutDirection();</span><br><span class="line">            <span class="keyword">final</span> <span class="keyword">int</span> absoluteGravity = Gravity.getAbsoluteGravity(gravity, layoutDirection);</span><br><span class="line">            <span class="keyword">switch</span> (absoluteGravity &amp; Gravity.HORIZONTAL_GRAVITY_MASK) &#123;</span><br><span class="line">                <span class="keyword">case</span> Gravity.CENTER_HORIZONTAL:</span><br><span class="line">                    childLeft = paddingLeft + ((childSpace - childWidth) / <span class="number">2</span>)</span><br><span class="line">                            + lp.leftMargin - lp.rightMargin;</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">case</span> Gravity.RIGHT:</span><br><span class="line">                    childLeft = childRight - childWidth - lp.rightMargin;</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">case</span> Gravity.LEFT:</span><br><span class="line">                <span class="keyword">default</span>:</span><br><span class="line">                    childLeft = paddingLeft + lp.leftMargin;</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (hasDividerBeforeChildAt(i)) &#123;</span><br><span class="line">                childTop += mDividerHeight;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            childTop += lp.topMargin;</span><br><span class="line">            setChildFrame(child, childLeft, childTop + getLocationOffset(child),</span><br><span class="line">                    childWidth, childHeight);</span><br><span class="line">            childTop += childHeight + lp.bottomMargin + getNextLocationOffset(child);</span><br><span class="line"></span><br><span class="line">            i += getChildrenSkipCount(child, i);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">setChildFrame</span><span class="params">(View child, <span class="keyword">int</span> left, <span class="keyword">int</span> top, <span class="keyword">int</span> width, <span class="keyword">int</span> height)</span> </span>&#123;        </span><br><span class="line">    child.layout(left, top, left + width, top + height);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="draw过程"><a class="markdownIt-Anchor" href="#draw过程"></a> draw过程</h3>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">performTraversals</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">boolean</span> cancelDraw = attachInfo.mTreeObserver.dispatchOnPreDraw() ||</span><br><span class="line">                    viewVisibility != View.VISIBLE;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!cancelDraw &amp;&amp; !newSurface) &#123;<span class="comment">//既没有取消绘制，也没有创建新的Surface</span></span><br><span class="line">        <span class="keyword">if</span> (!skipDraw || mReportNextDraw) &#123;</span><br><span class="line">            <span class="keyword">if</span> (mPendingTransitions != <span class="keyword">null</span> &amp;&amp; mPendingTransitions.size() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; mPendingTransitions.size(); ++i) &#123;</span><br><span class="line">                    mPendingTransitions.get(i).startChangingAnimations();</span><br><span class="line">                &#125;</span><br><span class="line">                mPendingTransitions.clear();</span><br><span class="line">            &#125;</span><br><span class="line">            performDraw();<span class="comment">//开始执行绘制操作</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (viewVisibility == View.VISIBLE) &#123;</span><br><span class="line">            <span class="comment">// Try again</span></span><br><span class="line">            scheduleTraversals();</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (mPendingTransitions != <span class="keyword">null</span> &amp;&amp; mPendingTransitions.size() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; mPendingTransitions.size(); ++i) &#123;</span><br><span class="line">                mPendingTransitions.get(i).endChangingAnimations();</span><br><span class="line">            &#125;</span><br><span class="line">            mPendingTransitions.clear();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>draw流程需要满足：</p>
+<ol>
+<li>未取消绘制也没有创建新的Surface,dispatchOnPreDraw返回true或者View不可见则取消绘制</li>
+<li>未跳过此次绘制，即skipDraw为false,或者mReportNextDraw为true</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">performDraw</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        draw(fullRedrawNeeded, updateTranformHint);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        mIsDrawing = <span class="keyword">false</span>;</span><br><span class="line">        Trace.traceEnd(Trace.TRACE_TAG_VIEW);</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">draw</span><span class="params">(<span class="keyword">boolean</span> fullRedrawNeeded, <span class="keyword">boolean</span> updateTranformHint)</span> </span>&#123;</span><br><span class="line">    Surface surface = mSurface;</span><br><span class="line">    <span class="keyword">if</span> (!surface.isValid()) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">    <span class="comment">//重绘区域不为空或者正在执行动画</span></span><br><span class="line">    <span class="keyword">if</span> (!dirty.isEmpty() || mIsAnimating) &#123;</span><br><span class="line">        <span class="comment">//开启了硬件加速</span></span><br><span class="line">        <span class="keyword">if</span> (attachInfo.mHardwareRenderer != <span class="keyword">null</span> &amp;&amp; attachInfo.mHardwareRenderer.isEnabled()) &#123;</span><br><span class="line">            <span class="comment">// Draw with hardware renderer.</span></span><br><span class="line">            mIsAnimating = <span class="keyword">false</span>;</span><br><span class="line">            mHardwareYOffset = yoff;</span><br><span class="line">            mResizeAlpha = resizeAlpha;</span><br><span class="line"></span><br><span class="line">            mCurrentDirty.set(dirty);</span><br><span class="line">            dirty.setEmpty();</span><br><span class="line">            <span class="comment">// 硬件加速绘制</span></span><br><span class="line">            attachInfo.mHardwareRenderer.draw(mView, attachInfo, <span class="keyword">this</span>,</span><br><span class="line">                    animating ? <span class="keyword">null</span> : mCurrentDirty);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            ……</span><br><span class="line">            <span class="comment">//软件绘制</span></span><br><span class="line">            <span class="keyword">if</span> (!drawSoftware(surface, attachInfo, yoff, scalingRequired, dirty)) &#123;</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">boolean</span> <span class="title">drawSoftware</span><span class="params">(Surface surface, AttachInfo attachInfo, <span class="keyword">int</span> yoff,</span></span></span><br><span class="line"><span class="function"><span class="params">    <span class="keyword">boolean</span> scalingRequired, Rect dirty)</span> </span>&#123;</span><br><span class="line">    ……</span><br><span class="line">    canvas = mSurface.lockCanvas(dirty);</span><br><span class="line"></span><br><span class="line">    mView.draw(canvas);</span><br><span class="line"></span><br><span class="line">    surface.unlockCanvasAndPost(canvas);</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>performDraw中会调用draw方法来完成绘制，draw方法中会通过attachInfo.mHardwareRenderer来判断是否启用了硬件加速，关于硬件加速我们在后面的篇幅进行讨论，这里我们假设未开启硬件加速关注软件绘制，即drawSoftware这个方法，这个方法首先会通过mSurface来取得绘制得画布canvas，并以dirty作为裁剪区域进行view绘制，最后通过unlockCanvasAndPost提交绘制得结果。这里mView就是我们的DecorView</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br></pre></td><td class="code"><pre><span class="line">frameworks/base/core/java/android/view/View.java</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">draw</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mClipBounds != <span class="keyword">null</span>) &#123;</span><br><span class="line">        canvas.clipRect(mClipBounds);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> privateFlags = mPrivateFlags;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> dirtyOpaque = (privateFlags &amp; PFLAG_DIRTY_MASK) == PFLAG_DIRTY_OPAQUE &amp;&amp;</span><br><span class="line">            (mAttachInfo == <span class="keyword">null</span> || !mAttachInfo.mIgnoreDirtyState);</span><br><span class="line">    mPrivateFlags = (privateFlags &amp; ~PFLAG_DIRTY_MASK) | PFLAG_DRAWN;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">        * Draw traversal performs several drawing steps which must be executed</span></span><br><span class="line"><span class="comment">        * in the appropriate order:</span></span><br><span class="line"><span class="comment">        *</span></span><br><span class="line"><span class="comment">        *      1. Draw the background</span></span><br><span class="line"><span class="comment">        *      2. If necessary, save the canvas' layers to prepare for fading</span></span><br><span class="line"><span class="comment">        *      3. Draw view's content</span></span><br><span class="line"><span class="comment">        *      4. Draw children</span></span><br><span class="line"><span class="comment">        *      5. If necessary, draw the fading edges and restore layers</span></span><br><span class="line"><span class="comment">        *      6. Draw decorations (scrollbars for instance)</span></span><br><span class="line"><span class="comment">        */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// Step 1, draw the background, if needed</span></span><br><span class="line">    <span class="keyword">int</span> saveCount;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!dirtyOpaque) &#123;</span><br><span class="line">        <span class="keyword">final</span> Drawable background = mBackground;</span><br><span class="line">        <span class="keyword">if</span> (background != <span class="keyword">null</span>) &#123;</span><br><span class="line">            ……</span><br><span class="line">            <span class="keyword">if</span> ((scrollX | scrollY) == <span class="number">0</span>) &#123;</span><br><span class="line">                background.draw(canvas);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                canvas.translate(scrollX, scrollY);</span><br><span class="line">                background.draw(canvas);</span><br><span class="line">                canvas.translate(-scrollX, -scrollY);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// skip step 2 &amp; 5 if possible (common case)</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> viewFlags = mViewFlags;</span><br><span class="line">    <span class="keyword">boolean</span> horizontalEdges = (viewFlags &amp; FADING_EDGE_HORIZONTAL) != <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">boolean</span> verticalEdges = (viewFlags &amp; FADING_EDGE_VERTICAL) != <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (!verticalEdges &amp;&amp; !horizontalEdges) &#123;</span><br><span class="line">        <span class="comment">// Step 3, draw the content</span></span><br><span class="line">        <span class="keyword">if</span> (!dirtyOpaque) onDraw(canvas);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Step 4, draw the children</span></span><br><span class="line">        dispatchDraw(canvas);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Step 6, draw decorations (scrollbars)</span></span><br><span class="line">        onDrawScrollBars(canvas);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (mOverlay != <span class="keyword">null</span> &amp;&amp; !mOverlay.isEmpty()) &#123;</span><br><span class="line">            mOverlay.getOverlayView().dispatchDraw(canvas);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// we're done...</span></span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ……</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Step 2, save the canvas' layers</span></span><br><span class="line">    ……</span><br><span class="line"></span><br><span class="line">    saveCount = canvas.getSaveCount();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> solidColor = getSolidColor();</span><br><span class="line">    <span class="keyword">if</span> (solidColor == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">int</span> flags = Canvas.HAS_ALPHA_LAYER_SAVE_FLAG;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (drawTop) &#123;</span><br><span class="line">            canvas.saveLayer(left, top, right, top + length, <span class="keyword">null</span>, flags);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (drawBottom) &#123;</span><br><span class="line">            canvas.saveLayer(left, bottom - length, right, bottom, <span class="keyword">null</span>, flags);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (drawLeft) &#123;</span><br><span class="line">            canvas.saveLayer(left, top, left + length, bottom, <span class="keyword">null</span>, flags);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (drawRight) &#123;</span><br><span class="line">            canvas.saveLayer(right - length, top, right, bottom, <span class="keyword">null</span>, flags);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        scrollabilityCache.setFadeColor(solidColor);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Step 3, draw the content</span></span><br><span class="line">    <span class="keyword">if</span> (!dirtyOpaque) onDraw(canvas);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Step 4, draw the children</span></span><br><span class="line">    dispatchDraw(canvas);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Step 5, draw the fade effect and restore layers</span></span><br><span class="line">    ……</span><br><span class="line"></span><br><span class="line">    canvas.restoreToCount(saveCount);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Step 6, draw decorations (scrollbars)</span></span><br><span class="line">    onDrawScrollBars(canvas);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (mOverlay != <span class="keyword">null</span> &amp;&amp; !mOverlay.isEmpty()) &#123;</span><br><span class="line">        mOverlay.getOverlayView().dispatchDraw(canvas);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>绘制流程的代码有点长，我做了稍微精简了下,从注释中我们可以看到绘制的具体流程分为6步：</p>
+<ol>
+<li>绘制背景(Draw the background)</li>
+<li>如果需要，为view的淡隐淡出效果保存layers(If necessary, save the canvas’ layers to prepare for fading)</li>
+<li>绘制view的内容(Draw view’s content)</li>
+<li>绘制子view(Draw children)</li>
+<li>如果需要，绘制淡隐淡出效果并恢复保存的layers If necessary, draw the fading edges and restore layers</li>
+<li>绘制装饰内容，比如滚动条等 Draw decorations (scrollbars for instance)</li>
+</ol>
+<p>draw的第一步是进行view背景的绘制，但并不是必须的，背景资源存放在mBackground中，scrollX和scrollY都为0说明该view不用滚动，可以直接绘制其背景，否则需要进行坐标转换。一般情况下view是不带fading效果的，这时候就不需要进行第2步和第5步，否则就需要进行2到6的所有步骤。绘制view的content是通过onDraw来实现的，即真正的内容是通过子类来进行绘制的。因为view的onDraw是个空实现。绘制好自身的内容后可能该view还有子view，这时候就需要通过dispatchDraw来通知子view进行绘制，记住我们绘制的流程是从decorView开始的，它是个ViewGroup，也是整个view树的根view。我们知道ViewGroup是所有父容器的父类，所以dispatchDraw放在其中实现最合适不过了。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">dispatchDraw</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> count = mChildrenCount;</span><br><span class="line">    <span class="keyword">final</span> View[] children = mChildren;</span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">        <span class="keyword">final</span> View child = children[i];</span><br><span class="line">        <span class="keyword">if</span> ((child.mViewFlags &amp; VISIBILITY_MASK) == VISIBLE || child.getAnimation() != <span class="keyword">null</span>) &#123;</span><br><span class="line">            more |= drawChild(canvas, child, drawingTime);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">boolean</span> <span class="title">drawChild</span><span class="params">(Canvas canvas, View child, <span class="keyword">long</span> drawingTime)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> child.draw(canvas, <span class="keyword">this</span>, drawingTime);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里主要遍历父view的所有子view通过drawChild来进行绘制。在drawChild中又回到我们view的draw绘制流程，其中会通过onDraw来进行child view的内容的绘制。整个绘制流程就是这样的。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpayimg.png" alt="esli 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipayimg.png" alt="esli 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Android/" rel="tag"># Android</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/[object Object]/android-plugin-res/" rel="next" title="插件化/热修复原理">
+                <i class="fa fa-chevron-left"></i> 插件化/热修复原理
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/[object Object]/aosp-surface-buffer-src/" rel="prev" title="Surface绘图缓冲区的创建流程">
+                Surface绘图缓冲区的创建流程 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/uploads/avatar.png"
+                alt="esli" />
+            
+              <p class="site-author-name" itemprop="name">esli</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">61</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#绘制缓冲区"><span class="nav-number">1.</span> <span class="nav-text"> 绘制缓冲区</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#绘制的时机"><span class="nav-number">2.</span> <span class="nav-text"> 绘制的时机</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#绘制流程"><span class="nav-number">3.</span> <span class="nav-text"> 绘制流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#measure过程"><span class="nav-number">4.</span> <span class="nav-text"> measure过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#layout过程"><span class="nav-number">5.</span> <span class="nav-text"> layout过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#draw过程"><span class="nav-number">6.</span> <span class="nav-text"> draw过程</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">esli</span>
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("jBNLE1XrpdNfIpNnvp02BNFi-gzGzoHsz", "1KETbc2T1LA8C2oPKVwpbzVm");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

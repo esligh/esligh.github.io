@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Server," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="关于跬步应用的服务器部署过程，程序通过python编写，部署在阿里ECS云服务器上。  系统基本信息 登陆 阿里云服务器 1234567891011121314Ubuntu 12.04 CPU 1核内存 512M 带宽1M所在可用区： 青岛可用区B 服务器登陆名：root 服务器登录密码：********** IP地址：115.28.200.10910.144.82.22 内  部署前的准备  安">
+<meta name="keywords" content="Server">
+<meta property="og:type" content="article">
+<meta property="og:title" content="阿里云服务器ECS环境搭建及配置">
+<meta property="og:url" content="http://esligh.github.io/[object Object]/note-server-kuibu-deploy/index.html">
+<meta property="og:site_name" content="esli&#39;s Blog">
+<meta property="og:description" content="关于跬步应用的服务器部署过程，程序通过python编写，部署在阿里ECS云服务器上。  系统基本信息 登陆 阿里云服务器 1234567891011121314Ubuntu 12.04 CPU 1核内存 512M 带宽1M所在可用区： 青岛可用区B 服务器登陆名：root 服务器登录密码：********** IP地址：115.28.200.10910.144.82.22 内  部署前的准备  安">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-01-02T14:02:59.029Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="阿里云服务器ECS环境搭建及配置">
+<meta name="twitter:description" content="关于跬步应用的服务器部署过程，程序通过python编写，部署在阿里ECS云服务器上。  系统基本信息 登陆 阿里云服务器 1234567891011121314Ubuntu 12.04 CPU 1核内存 512M 带宽1M所在可用区： 青岛可用区B 服务器登陆名：root 服务器登录密码：********** IP地址：115.28.200.10910.144.82.22 内  部署前的准备  安">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://esligh.github.io/[object Object]/note-server-kuibu-deploy/"/>
+
+
+
+
+
+  <title>阿里云服务器ECS环境搭建及配置 | esli's Blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">esli's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">day day up</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://esligh.github.io/[object Object]/note-server-kuibu-deploy/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="esli">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="esli's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">阿里云服务器ECS环境搭建及配置</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-09-19T23:00:50+08:00">
+                2015-09-19
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Server/" itemprop="url" rel="index">
+                    <span itemprop="name">Server</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+             <span id="/[object Object]/note-server-kuibu-deploy/" class="leancloud_visitors" data-flag-title="阿里云服务器ECS环境搭建及配置">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>关于跬步应用的服务器部署过程，程序通过python编写，部署在阿里ECS云服务器上。</p>
+<h3 id="系统基本信息"><a class="markdownIt-Anchor" href="#系统基本信息"></a> 系统基本信息</h3>
+<p>登陆 <a href="https://home.console.aliyun.com/#/" target="_blank" rel="noopener">阿里云服务器</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Ubuntu 12.04 </span><br><span class="line">CPU 1核</span><br><span class="line">内存 512M 带宽1M</span><br><span class="line">所在可用区： 青岛可用区B</span><br><span class="line"> </span><br><span class="line">服务器登陆名：</span><br><span class="line">root</span><br><span class="line"> </span><br><span class="line">服务器登录密码：</span><br><span class="line">**********</span><br><span class="line"> </span><br><span class="line">IP地址：</span><br><span class="line">115.28.200.109</span><br><span class="line">10.144.82.22 内</span><br></pre></td></tr></table></figure>
+<h3 id="部署前的准备"><a class="markdownIt-Anchor" href="#部署前的准备"></a> 部署前的准备</h3>
+<h4 id="安装xshell"><a class="markdownIt-Anchor" href="#安装xshell"></a> 安装Xshell</h4>
+<p>登陆服务器进行服务的部署<br>
+首先检查 python版本</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">python –v  </span><br><span class="line">创建目录</span><br><span class="line">mkdir /home/kuibu/</span><br><span class="line">mkdir /kuibu/images/</span><br><span class="line">mkdir /kuibu/images/user_photos/</span><br><span class="line">mkdir /kuibu/images/topic/</span><br><span class="line">mkdir /kuibu/images/cover</span><br><span class="line">mkdir /kuibu/images/thumbnail/</span><br><span class="line">mkdir /kuibu/log/</span><br></pre></td></tr></table></figure>
+<h4 id="安装winscp-或者其他ftp客户端服务端需安装配置vsftp具体见附录一"><a class="markdownIt-Anchor" href="#安装winscp-或者其他ftp客户端服务端需安装配置vsftp具体见附录一"></a> 安装WINSCP (或者其他FTP客户端)，服务端需安装配置vsftp(具体见附录一)</h4>
+<p>登陆用来上传文件，还可以用来查看文件结构</p>
+<h4 id="安装mysql-及mysqldb"><a class="markdownIt-Anchor" href="#安装mysql-及mysqldb"></a> 安装mysql  及mysqldb</h4>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sduo Apt-get update </span><br><span class="line">sudo apt-get mysql-server</span><br><span class="line">sudo apt-get python-mysqldb</span><br></pre></td></tr></table></figure>
+<p></p>
+<h4 id="安装nginx"><a class="markdownIt-Anchor" href="#安装nginx"></a> 安装nginx</h4>
+<p></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get nginx  </span><br><span class="line">sudo /etc/init.d/nginx start</span><br></pre></td></tr></table></figure>
+<p>Nginx的配置文件是/etc/nginx/nginx.conf,具体的配置信息见后.</p>
+<p>安装后在本地测试是否成功http://115.28.200.109/</p>
+<h4 id="mysql-服务"><a class="markdownIt-Anchor" href="#mysql-服务"></a> Mysql 服务</h4>
+<p>客户端连接服务端的问题,安装完mysql 后，为客户端创建一个用户</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Use mysql ; </span><br><span class="line">CREATE USER kuibu  IDENTIFIED BY  “123”</span><br><span class="line">123为远端的登录密码</span><br><span class="line"> </span><br><span class="line">Grant all privileges on  *.*  to  ‘ kuibu’@’%’ WITH GRANT OPTION</span><br><span class="line">kuibu 表示用户 % 表示远端的任意主机 如果主机IP知道了就不要这么设置了</span><br></pre></td></tr></table></figure>
+<p></p>
+<h3 id="搭建环境"><a class="markdownIt-Anchor" href="#搭建环境"></a> 搭建环境</h3>
+<p></p>
+<ol>
+<li><a href="http://xn--virtualenv-5i2py693d.py" target="_blank" rel="noopener">下载virtualenv.py</a> (这里使用已经下载好的，后面的可以略过)</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">通过命令</span><br><span class="line">$sudo easy_install virtualenv </span><br><span class="line">或者</span><br><span class="line">$sudo pip install virtualenv </span><br><span class="line"></span><br><span class="line">Unbuntu 下可以通过软件包管理</span><br><span class="line">Sudo apt-get install python-virtualenv</span><br></pre></td></tr></table></figure>
+<ol start="2">
+<li>创建虚拟环境</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cd 到 /home/kuibu/</span><br><span class="line">$ virtualenv flask  或者使用下载好的virtualenv.py 创建 python virtualenv.py flask ; </span><br><span class="line"></span><br><span class="line">每次使用时首先激活虚拟环境</span><br><span class="line">$ source ./flask/bin/activate</span><br></pre></td></tr></table></figure>
+<p>3. 创建项目目录</p>
+<p>mkdir /flask/apps/ 其中存放我们服务端项目的代码<br>
+ <br>
+4. 安装flask<br>
+完成上面的步骤，接下来就来安装flask等其附属的第三方模块：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ flask/bin/pip install flask</span><br><span class="line">$ flask/bin/pip install flask-sqlalchemy</span><br><span class="line">$ flask/bin/pip install flask-httpauth</span><br><span class="line">$ flask/bin/pip install redis</span><br><span class="line">$ flask/bin/pip install MySQL-python  #mysqldb </span><br><span class="line">$ flask/bin/pip install passlib</span><br><span class="line">$flask/bin/pip install flask-socketio</span><br><span class="line">$flask/bin/pip install PIL (具体看附录的PIL安装)</span><br><span class="line">nginx配置</span><br><span class="line">sudo apt-get nginx   这里需要&gt;1.4的稳定版</span><br></pre></td></tr></table></figure>
+<p>获取最新版nginx稳定版参见<br>
+<a href="http://www.kaijia.me/2013/05/ubuntu-latest-nginx-repo-collection/" target="_blank" rel="noopener">http://www.kaijia.me/2013/05/ubuntu-latest-nginx-repo-collection/</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo /etc/init.d/nginx start</span><br></pre></td></tr></table></figure>
+<p>配置文件  /etc/nginx/sites-avaliable/default, nginx的优化配置文件在/etc/nginx/nginx.conf</p>
+<h3 id="部署"><a class="markdownIt-Anchor" href="#部署"></a> 部署</h3>
+<p>基本架构  <strong>nginx + flask + gunicorn + gevent</strong></p>
+<h4 id="nginx反向代理及配置"><a class="markdownIt-Anchor" href="#nginx反向代理及配置"></a> Nginx反向代理及配置</h4>
+<p>跬步使用到socketio， 部署要使用 gunicorn  作为web服务容器，所以首先要安装先切换到虚拟环境，然后pip install gunicorn 即可，详见http://gunicorn.org/ ，注意这里需要加上版本号 pip install gunicorn==18.0<br>
+gunicorn 作为web服务容器，前端使用nginx做反向代理，配置如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">server &#123;</span><br><span class="line">listen 80;</span><br><span class="line">server_name localhost;</span><br><span class="line">location / &#123;</span><br><span class="line">    proxy_pass http://127.0.0.1:5000;</span><br><span class="line">    proxy_redirect off;</span><br><span class="line"> </span><br><span class="line">    proxy_set_header Host $host;</span><br><span class="line">    proxy_set_header X-Real-IP $remote_addr;</span><br><span class="line">    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;</span><br><span class="line">&#125;</span><br><span class="line">location /socket.io &#123;</span><br><span class="line">                proxy_pass http://127.0.0.1:5000/socket.io;</span><br><span class="line">                proxy_redirect off;</span><br><span class="line">                proxy_buffering off;</span><br><span class="line"> </span><br><span class="line">                proxy_set_header Host $host;</span><br><span class="line">                proxy_set_header X-Real-IP $remote_addr;</span><br><span class="line">                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;</span><br><span class="line"> </span><br><span class="line">                proxy_http_version 1.1;</span><br><span class="line">                proxy_set_header Upgrade $http_upgrade;</span><br><span class="line">                proxy_set_header Connection &quot;Upgrade&quot;;</span><br><span class="line">        &#125;</span><br><span class="line">        location ~ ^/(images|javascript|js|css|flash|media|static|files)/&#123;</span><br><span class="line">                root /home/kuibu/ ;</span><br><span class="line">                expires 30d ;</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>重启nginx</p>
+<h4 id="配置gunicorn"><a class="markdownIt-Anchor" href="#配置gunicorn"></a> 配置gunicorn</h4>
+<p>在项目目录下编写配置文件gunicorn.conf<br>
+ <br>
+先切换到项目目录 cd apps ;<br>
+编写配置文件gunicorn.conf</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">workers = 4</span><br><span class="line">backlog = 2048</span><br><span class="line">bind = &apos;127.0.0.1:5000&apos;</span><br><span class="line">worker_class=&quot;socketio.sgunicorn.GeventSocketIOWorker&quot; #sync,gevent,meinheld,socketio.sgunicorn.GeventSocketIOWorker</span><br><span class="line">proc_name=&apos;kuibu&apos;</span><br><span class="line">pidfile= &apos;/tmp/kuibu.pid&apos;</span><br><span class="line">logfile = &apos;/home/kuibu/log/debug.log&apos;</span><br><span class="line">debug=True</span><br><span class="line">daemon=True</span><br><span class="line">errorlog=&apos;/home/kuibu/log/error.log&apos;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">..bin/gunicorn --config gunicorn.conf run:app</span><br></pre></td></tr></table></figure>
+<p>启动成功后，通过命令查看后台进程</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ps -ef | grep kuibu</span><br></pre></td></tr></table></figure>
+<p>参考链接</p>
+<ol>
+<li><a href="http://flask-socketio.readthedocs.org/en/latest/" target="_blank" rel="noopener">http://flask-socketio.readthedocs.org/en/latest/</a></li>
+<li><a href="http://www.open-open.com/lib/view/open1423107543014.html" target="_blank" rel="noopener">http://www.open-open.com/lib/view/open1423107543014.html</a></li>
+</ol>
+<h4 id="使用-supervisor-管理gunicorn-进程"><a class="markdownIt-Anchor" href="#使用-supervisor-管理gunicorn-进程"></a> 使用 supervisor 管理gunicorn 进程</h4>
+<p>基本用法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">##sudo安装 sudo apt-get install supervisor </span><br><span class="line">##启动服务 sudo service supervisor start</span><br><span class="line">##终止服务 sudo service supervisor stop</span><br><span class="line">##也可以直接kill pid ps -A | grep supervisor</span><br></pre></td></tr></table></figure>
+<h4 id="参考配置"><a class="markdownIt-Anchor" href="#参考配置"></a> 参考配置</h4>
+<p></p>
+<h4 id="配置示例"><a class="markdownIt-Anchor" href="#配置示例"></a> 配置示例</h4>
+<ol>
+<li>文件内容</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[program:dylan]</span><br></pre></td></tr></table></figure>
+<ol start="2">
+<li>注意项目目录和gunicorn的配置文件地址</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">command=/home/bob/dylan/bin/gunicorn runserver:app -c /home/bob/dylan/gunicorn.conf directory=/home/bob/dylan </span><br><span class="line">user=root </span><br><span class="line">autostart=true </span><br><span class="line">autorestart=true</span><br></pre></td></tr></table></figure>
+<ol start="3">
+<li>log文件的位置</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">stdout_logfile=/home/bob/logs/gunicorn_supervisor.log</span><br></pre></td></tr></table></figure>
+<ol start="4">
+<li>重新读取配置</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sudo supervisorctl reread</span><br><span class="line">##启动服务 sudo supervisorctl start kuibu</span><br><span class="line">##停止服务 sudo supervisorctl stop kuibu </span><br><span class="line">##有问题就重启supervisor的总服务 </span><br><span class="line">sudo service supervisor stop </span><br><span class="line">sudo service supervisor start</span><br></pre></td></tr></table></figure>
+<p></p>
+<h4 id="通过浏览器管理supervisor"><a class="markdownIt-Anchor" href="#通过浏览器管理supervisor"></a> 通过浏览器管理supervisor</h4>
+<ol>
+<li>配置/etc/supervisor/supervisord.conf 添加以下内容</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">[unix_http_server]</span><br><span class="line">file=/var/run//supervisor.sock   ; (the path to the socket file)</span><br><span class="line">chmod=0700                       ; sockef file mode (default 0700)</span><br><span class="line">chown=nobody:nogroup</span><br><span class="line">username = esli</span><br><span class="line">password = 123</span><br><span class="line"> </span><br><span class="line">[inet_http_server]</span><br><span class="line">port = 127.0.0.1:9001</span><br><span class="line">username = esli</span><br><span class="line">password = 123</span><br></pre></td></tr></table></figure>
+<p>详见   <a href="http://supervisord.org/configuration.html#inet-http-server-section-settings" target="_blank" rel="noopener">http://supervisord.org/configuration.html#inet-http-server-section-settings</a></p>
+<p>2. 在对应的nginx配置中添加</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">location /supervisor &#123;</span><br><span class="line">                proxy_pass http://127.0.0.1:9001/;</span><br><span class="line">                proxy_redirect off;</span><br><span class="line">                proxy_buffering off;</span><br><span class="line"> </span><br><span class="line">                proxy_set_header Host $host;</span><br><span class="line">                proxy_set_header X-Real-IP $remote_addr;</span><br><span class="line">                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;</span><br><span class="line"> </span><br><span class="line">                proxy_http_version 1.1;</span><br><span class="line">                proxy_set_header Upgrade $http_upgrade;</span><br><span class="line">                proxy_set_header Connection &quot;Upgrade&quot;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这样我们就可以远程对其进行管理。</p>
+<h3 id="测试"><a class="markdownIt-Anchor" href="#测试"></a> 测试</h3>
+<ol>
+<li>安装ab测试工具<br>
+sudo apt-get install apache2-utils</li>
+<li>简单测试<br>
+$time ab -n 200 -c 200 <a href="http://115.28.200.109/caddy/api/v1.0/test" target="_blank" rel="noopener">http://115.28.200.109/caddy/api/v1.0/test</a></li>
+<li>实际测试<br>
+time ab -n 2000 -c 1000 -H keywords:dt -p /home/kuibu/param.conf -T ‘application/json; charset=utf8’ <a href="http://115.28.200.109/caddy/api/v1.0/get_collections" target="_blank" rel="noopener">http://115.28.200.109/caddy/api/v1.0/get_collections</a><br>
+ <br>
+其中params.conf 的内容如下：<br>
+ <br>
+data_type=HOME_LIST&amp;uid=9&amp;action=INIT&amp;threshold=-1</li>
+<li>压力测试结果<br>
+在远程对web服务器进行压力测试，往往效果不理想（因为网络延时过大），建议使用内网的另一台或者多台服务器通过内网进行测试，这样得出的数据，准确度会高很多。如果只有单独的一台服务器，可以直接本地测试，比远程测试效果要准确。<br>
+ <br>
+关于ab的使用，参考 <a href="http://www.ha97.com/4617.html" target="_blank" rel="noopener">http://www.ha97.com/4617.html</a></li>
+</ol>
+<h3 id="附录一-安装其他模块"><a class="markdownIt-Anchor" href="#附录一-安装其他模块"></a> 附录一 安装其他模块</h3>
+<h4 id="ubuntudebian安装vsftp软件"><a class="markdownIt-Anchor" href="#ubuntudebian安装vsftp软件"></a> Ubuntu/Debian安装vsftp软件</h4>
+<ol>
+<li>更新软件源<br>
+首先需要更新系统的软件源，便捷工具下载地址：<a href="http://help.aliyun.com/manual?spm=0.0.0.0.zJ3dBU&amp;helpId=1692" target="_blank" rel="noopener">http://help.aliyun.com/manual?spm=0.0.0.0.zJ3dBU&amp;helpId=1692</a></li>
+<li>安装vsftp<br>
+使用apt-get命令安装vsftp</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#apt-get install vsftpd –y</span><br></pre></td></tr></table></figure>
+<ol start="3">
+<li>添加ftp帐号和目录<br>
+先检查一下nologin的位置，通常在/usr/sbin/nologin或者/sbin/nologin下。使用下面的命令创建帐户，该命令指定了/alidata/www/wwwroot为用户pwftp的家目录，您可以自己定义帐户名和目录:</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">#useradd -d /alidata/www/wwwroot -s /sbin/nologin pwftp</span><br><span class="line"> </span><br><span class="line">修改该帐户密码:</span><br><span class="line">#passwd pwftp</span><br><span class="line"> </span><br><span class="line">修改指定目录的权限</span><br><span class="line">#chown -R pwftp.pwftp /alidata/www/wwwroot</span><br></pre></td></tr></table></figure>
+<ol start="4">
+<li>配置vsftp<br>
+编辑vsftp配置文件，命令如下：</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#vi /etc/vsftpd.conf</span><br></pre></td></tr></table></figure>
+<p>将配置文件中”anonymous_enable=YES “改为 “anonymous_enable=NO”<br>
+取消如下配置前的注释符号：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">local_enable=YES</span><br><span class="line">write_enable=YES</span><br><span class="line">chroot_local_user=YES</span><br><span class="line">chroot_list_enable=YES</span><br><span class="line">chroot_list_file=/etc/vsftpd.chroot_list</span><br></pre></td></tr></table></figure>
+<p>保存退出,编辑/etc/vsftpd.chroot_list文件，将ftp的帐户名添加进去，保存退出</p>
+<ol start="5">
+<li>
+<p>修改shell配置<br>
+vi编辑/etc/shells，如果该文件里没有/usr/sbin/nologin或者/sbin/nologin（具体看当前系统配置）则追加进去</p>
+</li>
+<li>
+<p>重启vsftp服务并测试登录,使用命令启动vsftp服务:</p>
+</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#service vsftpd restart</span><br></pre></td></tr></table></figure>
+<p>然后用帐号pwftp测试下是否可以登陆ftp。目录是/alidata/www/wwwroot。</p>
+<h4 id="pil安装"><a class="markdownIt-Anchor" href="#pil安装"></a> PIL安装</h4>
+<p>具体参见 <a href="http://jinvan.com/post/install-pil-on-ubuntu" target="_blank" rel="noopener">http://jinvan.com/post/install-pil-on-ubuntu</a></p>
+<ol>
+<li>安装依赖包</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install libjpeg8-dev zlib1g-dev libfreetype6-dev</span><br></pre></td></tr></table></figure>
+<p>2. 创建链接，因为PIP安装软件包时，并没有安装在系统路径里，因此做一个软连接。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ln -s /usr/lib/`uname -i`-linux-gnu/libfreetype.so /usr/lib/</span><br><span class="line">ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so /usr/lib/</span><br><span class="line">ln -s /usr/lib/`uname -i`-linux-gnu/libz.so /usr/lib/</span><br></pre></td></tr></table></figure>
+<ol start="3">
+<li>准备工作做好了，安装PIL</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo pip install pil </span><br><span class="line">sudo pip install PIL --allow-external PIL --allow-unverified PIL</span><br></pre></td></tr></table></figure>
+<p></p>
+<h3 id="附录二-error-汇总"><a class="markdownIt-Anchor" href="#附录二-error-汇总"></a> 附录二 Error 汇总</h3>
+<p></p>
+<ol>
+<li>安装Mysql-python 报错<br>
+Python.h: No such file or directory 需要</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ sudo apt-get install python-dev</span><br></pre></td></tr></table></figure>
+<p>2. IOError: [Errno 26] Text file busy: ‘flask/bin/python’<br>
+Lsof</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">unlink flask/bin/python</span><br></pre></td></tr></table></figure>
+<ol start="3">
+<li>greenlet.h:8:20: fatal error: Python.h: No such file or directory</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">解决 sudo apt-get install python-dev</span><br></pre></td></tr></table></figure>
+<p>4. 安装MySQL-python  EnvironmentError: mysql_config not found</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install libmysqlclient-dev</span><br></pre></td></tr></table></figure>
+<p>5. 关于使用flask - socketio</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">../bin/gunicorn -c gunicorn.conf run:app</span><br><span class="line">使用socketio.sgunicorn.GeventSocketIOWorker 代替了 gevent </span><br><span class="line">报错AttributeError: &apos;socket&apos; object has no attribute &apos;cfg_addr&apos;</span><br></pre></td></tr></table></figure>
+<p>这是由于gunicorn 版本问题引起的，当前版本如果&gt;18.0 修会出现这个问题，<br>
+所以需要将当前版本回归到18.0及以下<br>
+ <br>
+<a href="https://github.com/miguelgrinberg/Flask-SocketIO/issues/93" target="_blank" rel="noopener">https://github.com/miguelgrinberg/Flask-SocketIO/issues/93</a></p>
+<h3 id="附录三-linux命令"><a class="markdownIt-Anchor" href="#附录三-linux命令"></a> 附录三 Linux命令</h3>
+<ol>
+<li>
+<p>杀死服务进程<br>
+ps -ef | grep kuibu<br>
+kill -s 9 24578</p>
+</li>
+<li>
+<p>查看目录权限<br>
+ll</p>
+</li>
+<li>
+<p>查看内存使用<br>
+free –m<br>
+top</p>
+</li>
+</ol>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpayimg.png" alt="esli 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipayimg.png" alt="esli 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Server/" rel="tag"># Server</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/[object Object]/aosp-asynctask-src/" rel="next" title="AsyncTask原理剖析">
+                <i class="fa fa-chevron-left"></i> AsyncTask原理剖析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/[object Object]/android-libray-volley-src/" rel="prev" title="Volley网络库源码分析">
+                Volley网络库源码分析 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/uploads/avatar.png"
+                alt="esli" />
+            
+              <p class="site-author-name" itemprop="name">esli</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">61</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#系统基本信息"><span class="nav-number">1.</span> <span class="nav-text"> 系统基本信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#部署前的准备"><span class="nav-number">2.</span> <span class="nav-text"> 部署前的准备</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#安装xshell"><span class="nav-number">2.1.</span> <span class="nav-text"> 安装Xshell</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#安装winscp-或者其他ftp客户端服务端需安装配置vsftp具体见附录一"><span class="nav-number">2.2.</span> <span class="nav-text"> 安装WINSCP (或者其他FTP客户端)，服务端需安装配置vsftp(具体见附录一)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#安装mysql-及mysqldb"><span class="nav-number">2.3.</span> <span class="nav-text"> 安装mysql  及mysqldb</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#安装nginx"><span class="nav-number">2.4.</span> <span class="nav-text"> 安装nginx</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#mysql-服务"><span class="nav-number">2.5.</span> <span class="nav-text"> Mysql 服务</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#搭建环境"><span class="nav-number">3.</span> <span class="nav-text"> 搭建环境</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#部署"><span class="nav-number">4.</span> <span class="nav-text"> 部署</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#nginx反向代理及配置"><span class="nav-number">4.1.</span> <span class="nav-text"> Nginx反向代理及配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#配置gunicorn"><span class="nav-number">4.2.</span> <span class="nav-text"> 配置gunicorn</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#使用-supervisor-管理gunicorn-进程"><span class="nav-number">4.3.</span> <span class="nav-text"> 使用 supervisor 管理gunicorn 进程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#参考配置"><span class="nav-number">4.4.</span> <span class="nav-text"> 参考配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#配置示例"><span class="nav-number">4.5.</span> <span class="nav-text"> 配置示例</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#通过浏览器管理supervisor"><span class="nav-number">4.6.</span> <span class="nav-text"> 通过浏览器管理supervisor</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#测试"><span class="nav-number">5.</span> <span class="nav-text"> 测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#附录一-安装其他模块"><span class="nav-number">6.</span> <span class="nav-text"> 附录一 安装其他模块</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#ubuntudebian安装vsftp软件"><span class="nav-number">6.1.</span> <span class="nav-text"> Ubuntu/Debian安装vsftp软件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#pil安装"><span class="nav-number">6.2.</span> <span class="nav-text"> PIL安装</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#附录二-error-汇总"><span class="nav-number">7.</span> <span class="nav-text"> 附录二 Error 汇总</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#附录三-linux命令"><span class="nav-number">8.</span> <span class="nav-text"> 附录三 Linux命令</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">esli</span>
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("jBNLE1XrpdNfIpNnvp02BNFi-gzGzoHsz", "1KETbc2T1LA8C2oPKVwpbzVm");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

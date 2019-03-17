@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Android," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="ServiceManager是Android系统的服务大管家，它负责所有实名Server的管理，比如CameraService,WindowManagerService等等，所以它的重要性可想而知，ServiceManager是单独运行在一个系统进程中的，它在Init.rc的定义如下: 12345678910service servicemanager /system/bin/serviceman">
+<meta name="keywords" content="Android">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ServiceManager源码分析">
+<meta property="og:url" content="http://esligh.github.io/[object Object]/aosp-servicemanager-src/index.html">
+<meta property="og:site_name" content="esli&#39;s Blog">
+<meta property="og:description" content="ServiceManager是Android系统的服务大管家，它负责所有实名Server的管理，比如CameraService,WindowManagerService等等，所以它的重要性可想而知，ServiceManager是单独运行在一个系统进程中的，它在Init.rc的定义如下: 12345678910service servicemanager /system/bin/serviceman">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-03-17T09:28:40.213Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="ServiceManager源码分析">
+<meta name="twitter:description" content="ServiceManager是Android系统的服务大管家，它负责所有实名Server的管理，比如CameraService,WindowManagerService等等，所以它的重要性可想而知，ServiceManager是单独运行在一个系统进程中的，它在Init.rc的定义如下: 12345678910service servicemanager /system/bin/serviceman">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://esligh.github.io/[object Object]/aosp-servicemanager-src/"/>
+
+
+
+
+
+  <title>ServiceManager源码分析 | esli's Blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">esli's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">day day up</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://esligh.github.io/[object Object]/aosp-servicemanager-src/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="esli">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="esli's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">ServiceManager源码分析</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-15T21:42:35+08:00">
+                2017-05-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AOSP/" itemprop="url" rel="index">
+                    <span itemprop="name">AOSP</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+             <span id="/[object Object]/aosp-servicemanager-src/" class="leancloud_visitors" data-flag-title="ServiceManager源码分析">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>ServiceManager是Android系统的服务大管家，它负责所有实名Server的管理，比如CameraService,WindowManagerService等等，所以它的重要性可想而知，ServiceManager是单独运行在一个系统进程中的，它在Init.rc的定义如下:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">service servicemanager /system/bin/servicemanager</span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">core</span></span></span><br><span class="line"><span class="class">    <span class="title">user</span> <span class="title">system</span></span></span><br><span class="line"><span class="class">    <span class="title">group</span> <span class="title">system</span></span></span><br><span class="line"><span class="class">    <span class="title">critical</span></span></span><br><span class="line"><span class="class">    <span class="title">onrestart</span> <span class="title">restart</span> <span class="title">healthd</span></span></span><br><span class="line"><span class="class">    <span class="title">onrestart</span> <span class="title">restart</span> <span class="title">zygote</span></span></span><br><span class="line"><span class="class">    <span class="title">onrestart</span> <span class="title">restart</span> <span class="title">media</span></span></span><br><span class="line"><span class="class">    <span class="title">onrestart</span> <span class="title">restart</span> <span class="title">surfaceflinger</span></span></span><br><span class="line"><span class="class">    <span class="title">onrestart</span> <span class="title">restart</span> <span class="title">drm</span></span></span><br></pre></td></tr></table></figure>
+<p>Class 为core 属于核心级的 它的主方法在service_manager.c中定义 我们看看它的实现：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">frameworks/native/cmds/servicemanager/service_manager.c</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> **argv)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">binder_state</span> *<span class="title">bs</span>;</span></span><br><span class="line">    <span class="keyword">void</span> *svcmgr = BINDER_SERVICE_MANAGER;</span><br><span class="line">	<span class="comment">//打开binder 这里映射的内存大小为128k</span></span><br><span class="line">    bs = binder_open(<span class="number">128</span>*<span class="number">1024</span>);</span><br><span class="line">	<span class="comment">//使sm成为所有服务的大管家</span></span><br><span class="line">    <span class="keyword">if</span> (binder_become_context_manager(bs)) &#123;</span><br><span class="line">        ALOGE(<span class="string">"cannot become context manager (%s)\n"</span>, strerror(errno));</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    svcmgr_handle = svcmgr;</span><br><span class="line">    binder_loop(bs, svcmgr_handler);<span class="comment">//binder循环</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>进入主方法后，主要做了三件事：<br>
+&lt;1&gt;. 打开binder驱动设备，servicemanager的业务并不复杂，这里映射的大小为128k。<br>
+&lt;2&gt;. 调用binder_become_context_manager使sevicemanger成为所有实名服务的大管家<br>
+&lt;3&gt;. 调用binder_loop进入binder循环，等待client端的请求。svcmgr_handler为servicemanager服务处理handler，它是一个函数指针，主要是处理它自身的业务逻辑。比如我们的client端通过AddService或者getService的服务就是在这里进行处理的。</p>
+<p>下面我们分析servicemanager的binder_loop</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">frameworks/native/cmds/servicemanager/binder.c</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">binder_loop</span><span class="params">(struct binder_state *bs, binder_handler func)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> res;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">binder_write_read</span> <span class="title">bwr</span>;</span></span><br><span class="line">    <span class="keyword">unsigned</span> readbuf[<span class="number">32</span>];</span><br><span class="line"></span><br><span class="line">    bwr.write_size = <span class="number">0</span>;</span><br><span class="line">    bwr.write_consumed = <span class="number">0</span>;</span><br><span class="line">    bwr.write_buffer = <span class="number">0</span>;</span><br><span class="line">    </span><br><span class="line">    readbuf[<span class="number">0</span>] = BC_ENTER_LOOPER;</span><br><span class="line">    binder_write(bs, readbuf, <span class="keyword">sizeof</span>(<span class="keyword">unsigned</span>));</span><br><span class="line">	<span class="comment">//不断的读取binder的内容</span></span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">        bwr.read_size = <span class="keyword">sizeof</span>(readbuf);</span><br><span class="line">        bwr.read_consumed = <span class="number">0</span>;</span><br><span class="line">        bwr.read_buffer = (<span class="keyword">unsigned</span>) readbuf;</span><br><span class="line"></span><br><span class="line">        res = ioctl(bs-&gt;fd, BINDER_WRITE_READ, &amp;bwr);<span class="comment">//读取binder内容</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (res &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            ALOGE(<span class="string">"binder_loop: ioctl failed (%s)\n"</span>, strerror(errno));</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        res = binder_parse(bs, <span class="number">0</span>, readbuf, bwr.read_consumed, func);<span class="comment">//解析数据</span></span><br><span class="line">      ……</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Binder_loop中首先通过binder_write向Binder驱动写入BC_ENTER_LOOPER，表示进入binder循环，然后通过BINDER_WRITE_READ读取binder内容，结果存放在一个binder_write_read结构中,然后开始通过binder_parse解析数据，这里将我们的服务处理函数传递给它，那么数据应该是在这里交给我们的handler进行处理。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">frameworks/native/cmds/servicemanager/binder.c</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">binder_parse</span><span class="params">(struct binder_state *bs, struct binder_io *bio,</span></span></span><br><span class="line"><span class="function"><span class="params">                 <span class="keyword">uint32_t</span> *ptr, <span class="keyword">uint32_t</span> size, binder_handler func)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ……</span><br><span class="line">        <span class="keyword">switch</span>(cmd) &#123;</span><br><span class="line">        ……</span><br><span class="line">	        <span class="keyword">case</span> BR_TRANSACTION: &#123;</span><br><span class="line">	            <span class="class"><span class="keyword">struct</span> <span class="title">binder_txn</span> *<span class="title">txn</span> = (<span class="title">void</span> *) <span class="title">ptr</span>;</span></span><br><span class="line">	            <span class="keyword">if</span> ((end - ptr) * <span class="keyword">sizeof</span>(<span class="keyword">uint32_t</span>) &lt; <span class="keyword">sizeof</span>(struct binder_txn)) &#123;</span><br><span class="line">	                ALOGE(<span class="string">"parse: txn too small!\n"</span>);</span><br><span class="line">	                <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">	            &#125;</span><br><span class="line">	            binder_dump_txn(txn);</span><br><span class="line">	            <span class="keyword">if</span> (func) &#123;</span><br><span class="line">	                <span class="keyword">unsigned</span> rdata[<span class="number">256</span>/<span class="number">4</span>];</span><br><span class="line">	                <span class="class"><span class="keyword">struct</span> <span class="title">binder_io</span> <span class="title">msg</span>;</span></span><br><span class="line">	                <span class="class"><span class="keyword">struct</span> <span class="title">binder_io</span> <span class="title">reply</span>;</span></span><br><span class="line">	                <span class="keyword">int</span> res;</span><br><span class="line">	</span><br><span class="line">	                bio_init(&amp;reply, rdata, <span class="keyword">sizeof</span>(rdata), <span class="number">4</span>);</span><br><span class="line">	                bio_init_from_txn(&amp;msg, txn);</span><br><span class="line">	                res = func(bs, txn, &amp;msg, &amp;reply);</span><br><span class="line">	                binder_send_reply(bs, &amp;reply, txn-&gt;data, res);</span><br><span class="line">	            &#125;</span><br><span class="line">	            ptr += <span class="keyword">sizeof</span>(*txn) / <span class="keyword">sizeof</span>(<span class="keyword">uint32_t</span>);</span><br><span class="line">	            <span class="keyword">break</span>;</span><br><span class="line">	        &#125;</span><br><span class="line">	      ……</span><br><span class="line">           &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> r;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以看到在BR_TRANSACTION中的确是通过fun，也就是svcmgr_handler进行处理的。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//sm的服务handler</span></span><br><span class="line">frameworks/native/cmds/servicemanager/service_manager.c</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">svcmgr_handler</span><span class="params">(struct binder_state *bs,</span></span></span><br><span class="line"><span class="function"><span class="params">                   struct binder_txn *txn,</span></span></span><br><span class="line"><span class="function"><span class="params">                   struct binder_io *msg,</span></span></span><br><span class="line"><span class="function"><span class="params">                   struct binder_io *reply)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">svcinfo</span> *<span class="title">si</span>;</span></span><br><span class="line">    <span class="keyword">uint16_t</span> *s;</span><br><span class="line">    <span class="keyword">unsigned</span> len;</span><br><span class="line">    <span class="keyword">void</span> *ptr;</span><br><span class="line">    <span class="keyword">uint32_t</span> strict_policy;</span><br><span class="line">    <span class="keyword">int</span> allow_isolated;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (txn-&gt;target != svcmgr_handle)</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">    strict_policy = bio_get_uint32(msg);</span><br><span class="line">    s = bio_get_string16(msg, &amp;len);</span><br><span class="line">    <span class="keyword">if</span> ((len != (<span class="keyword">sizeof</span>(svcmgr_id) / <span class="number">2</span>)) ||</span><br><span class="line">        <span class="built_in">memcmp</span>(svcmgr_id, s, <span class="keyword">sizeof</span>(svcmgr_id))) &#123;</span><br><span class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>,<span class="string">"invalid id %s\n"</span>, str8(s));</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">switch</span>(txn-&gt;code) &#123;</span><br><span class="line">    <span class="keyword">case</span> SVC_MGR_GET_SERVICE:</span><br><span class="line">    <span class="keyword">case</span> SVC_MGR_CHECK_SERVICE:</span><br><span class="line">        s = bio_get_string16(msg, &amp;len);</span><br><span class="line">        ptr = do_find_service(bs, s, len, txn-&gt;sender_euid);</span><br><span class="line">        <span class="keyword">if</span> (!ptr)</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        bio_put_ref(reply, ptr);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">case</span> SVC_MGR_ADD_SERVICE:</span><br><span class="line">        s = bio_get_string16(msg, &amp;len);</span><br><span class="line">        ptr = bio_get_ref(msg);</span><br><span class="line">        allow_isolated = bio_get_uint32(msg) ? <span class="number">1</span> : <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">if</span> (do_add_service(bs, s, len, ptr, txn-&gt;sender_euid, allow_isolated))</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">case</span> SVC_MGR_LIST_SERVICES: &#123;</span><br><span class="line">        <span class="keyword">unsigned</span> n = bio_get_uint32(msg);</span><br><span class="line"></span><br><span class="line">        si = svclist;</span><br><span class="line">        <span class="keyword">while</span> ((n-- &gt; <span class="number">0</span>) &amp;&amp; si)</span><br><span class="line">            si = si-&gt;next;</span><br><span class="line">        <span class="keyword">if</span> (si) &#123;</span><br><span class="line">            bio_put_string16(reply, si-&gt;name);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">        ALOGE(<span class="string">"unknown code %d\n"</span>, txn-&gt;code);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    bio_put_uint32(reply, <span class="number">0</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Servicemanager作为服务的大管家它的业务并不负责，相比其他service的服务可以说是异常简单，我们看看它最重要的服务即添加服务和获取服务。</p>
+<p>Servicemanager维护了一个svclist链表，每个添加进来的服务都会通过一个svcinfo进行描述，并添加到链表中。它的结构如下</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">svcinfo</span> </span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">svcinfo</span> *<span class="title">next</span>;</span></span><br><span class="line">    <span class="keyword">void</span> *ptr;<span class="comment">//service的句柄</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">binder_death</span> <span class="title">death</span>;</span></span><br><span class="line">    <span class="keyword">int</span> allow_isolated;</span><br><span class="line">    <span class="keyword">unsigned</span> len;<span class="comment">//服务名的长度</span></span><br><span class="line">    <span class="keyword">uint16_t</span> name[<span class="number">0</span>];<span class="comment">//服务名</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">svcinfo</span> *<span class="title">svclist</span> = 0;</span><span class="comment">//sm内部维护了一个svclist列表它是已经注册的服务列表</span></span><br></pre></td></tr></table></figure>
+<p>我们看看查找服务的过程</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> *<span class="title">do_find_service</span><span class="params">(struct binder_state *bs, <span class="keyword">uint16_t</span> *s, <span class="keyword">unsigned</span> len, <span class="keyword">unsigned</span> uid)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">svcinfo</span> *<span class="title">si</span>;</span></span><br><span class="line">    si = find_svc(s, len);</span><br><span class="line">    <span class="keyword">if</span> (si &amp;&amp; si-&gt;ptr) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!si-&gt;allow_isolated) &#123;</span><br><span class="line">            <span class="comment">// If this service doesn't allow access from isolated processes,</span></span><br><span class="line">            <span class="comment">// then check the uid to see if it is isolated.</span></span><br><span class="line">            <span class="keyword">unsigned</span> appid = uid % AID_USER;</span><br><span class="line">            <span class="keyword">if</span> (appid &gt;= AID_ISOLATED_START &amp;&amp; appid &lt;= AID_ISOLATED_END) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> si-&gt;ptr;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function">struct svcinfo *<span class="title">find_svc</span><span class="params">(<span class="keyword">uint16_t</span> *s16, <span class="keyword">unsigned</span> len)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">svcinfo</span> *<span class="title">si</span>;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (si = svclist; si; si = si-&gt;next) &#123;</span><br><span class="line">        <span class="keyword">if</span> ((len == si-&gt;len) &amp;&amp;</span><br><span class="line">            !<span class="built_in">memcmp</span>(s16, si-&gt;name, len * <span class="keyword">sizeof</span>(<span class="keyword">uint16_t</span>))) &#123;</span><br><span class="line">            <span class="keyword">return</span> si;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>很简单，它在内部遍历链表，根据服务名进行查找如果找到返回对应的句柄si-&gt;ptr，否则返回0.</p>
+<p>而添加服务的方法为do_add_service，它的实现如下</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line">frameworks/native/cmds/servicemanager/service_manager.c</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">do_add_service</span><span class="params">(struct binder_state *bs,</span></span></span><br><span class="line"><span class="function"><span class="params">                   <span class="keyword">uint16_t</span> *s, <span class="keyword">unsigned</span> len,</span></span></span><br><span class="line"><span class="function"><span class="params">                   <span class="keyword">void</span> *ptr, <span class="keyword">unsigned</span> uid, <span class="keyword">int</span> allow_isolated)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">svcinfo</span> *<span class="title">si</span>;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!ptr || (len == <span class="number">0</span>) || (len &gt; <span class="number">127</span>))</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!svc_can_register(uid, s)) &#123;</span><br><span class="line">        ALOGE(<span class="string">"add_service('%s',%p) uid=%d - PERMISSION DENIED\n"</span>,</span><br><span class="line">             str8(s), ptr, uid);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    si = find_svc(s, len);</span><br><span class="line">    <span class="keyword">if</span> (si) &#123;</span><br><span class="line">        <span class="keyword">if</span> (si-&gt;ptr) &#123;</span><br><span class="line">            ALOGE(<span class="string">"add_service('%s',%p) uid=%d - ALREADY REGISTERED, OVERRIDE\n"</span>,</span><br><span class="line">                 str8(s), ptr, uid);</span><br><span class="line">            svcinfo_death(bs, si);</span><br><span class="line">        &#125;</span><br><span class="line">        si-&gt;ptr = ptr;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        si = <span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(*si) + (len + <span class="number">1</span>) * <span class="keyword">sizeof</span>(<span class="keyword">uint16_t</span>));</span><br><span class="line">        <span class="keyword">if</span> (!si) &#123;</span><br><span class="line">            ALOGE(<span class="string">"add_service('%s',%p) uid=%d - OUT OF MEMORY\n"</span>,</span><br><span class="line">                 str8(s), ptr, uid);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        si-&gt;ptr = ptr;</span><br><span class="line">        si-&gt;len = len;</span><br><span class="line">        <span class="built_in">memcpy</span>(si-&gt;name, s, (len + <span class="number">1</span>) * <span class="keyword">sizeof</span>(<span class="keyword">uint16_t</span>));</span><br><span class="line">        si-&gt;name[len] = <span class="string">'\0'</span>;</span><br><span class="line">        si-&gt;death.func = svcinfo_death;</span><br><span class="line">        si-&gt;death.ptr = si;</span><br><span class="line">        si-&gt;allow_isolated = allow_isolated;</span><br><span class="line">        si-&gt;next = svclist;</span><br><span class="line">        svclist = si;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    binder_acquire(bs, ptr);</span><br><span class="line">    binder_link_to_death(bs, ptr, &amp;si-&gt;death);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>添加服务的名称长度不能大于127,随后在svclist中查找服务是否已经存在，如果存在，则释放之前的服务实例，将最新的服务句柄赋值给ptr，否则服务不存在，就需要为新的服务创建svcinfo结构，并对其进行初始化。同时将其添加到svclist的头部。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpayimg.png" alt="esli 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipayimg.png" alt="esli 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Android/" rel="tag"># Android</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/[object Object]/aosp-binder-1-src/" rel="next" title="理解Binder系列：开篇">
+                <i class="fa fa-chevron-left"></i> 理解Binder系列：开篇
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/[object Object]/aosp-service-start-src/" rel="prev" title="Service的启动过程(一)">
+                Service的启动过程(一) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/uploads/avatar.png"
+                alt="esli" />
+            
+              <p class="site-author-name" itemprop="name">esli</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">61</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">esli</span>
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("jBNLE1XrpdNfIpNnvp02BNFi-gzGzoHsz", "1KETbc2T1LA8C2oPKVwpbzVm");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

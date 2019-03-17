@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Android," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="Service介绍 Service是Android的四大组件之一，官方对它的描述是  A Service is an application component representing either an application’s desire to perform a longer-running operation while not interacting with the user">
+<meta name="keywords" content="Android">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Service的启动过程(一)">
+<meta property="og:url" content="http://esligh.github.io/[object Object]/aosp-service-start-src/index.html">
+<meta property="og:site_name" content="esli&#39;s Blog">
+<meta property="og:description" content="Service介绍 Service是Android的四大组件之一，官方对它的描述是  A Service is an application component representing either an application’s desire to perform a longer-running operation while not interacting with the user">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-03-17T09:29:00.402Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Service的启动过程(一)">
+<meta name="twitter:description" content="Service介绍 Service是Android的四大组件之一，官方对它的描述是  A Service is an application component representing either an application’s desire to perform a longer-running operation while not interacting with the user">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://esligh.github.io/[object Object]/aosp-service-start-src/"/>
+
+
+
+
+
+  <title>Service的启动过程(一) | esli's Blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">esli's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">day day up</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://esligh.github.io/[object Object]/aosp-service-start-src/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="esli">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="esli's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Service的启动过程(一)</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-06-02T21:42:35+08:00">
+                2017-06-02
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AOSP/" itemprop="url" rel="index">
+                    <span itemprop="name">AOSP</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+             <span id="/[object Object]/aosp-service-start-src/" class="leancloud_visitors" data-flag-title="Service的启动过程(一)">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="service介绍"><a class="markdownIt-Anchor" href="#service介绍"></a> Service介绍</h2>
+<p>Service是Android的四大组件之一，官方对它的描述是</p>
+<blockquote>
+<p>A Service is an application component representing either an application’s desire to perform a longer-running operation while not interacting with the user or to supply functionality for other applications to use.</p>
+</blockquote>
+<p>大概意思为，Service是一个应用程序组件，它是在一个应用程序不和用户进行交互时在后台执行的一个长时间运行的操作，或者为其他应用进程所使用的功能模块(这里应该是说Service可以被Activity或者其他应用进行bindService)。总之，我们对于Service的理解就是它是一个可以在后台运行不和用户进行交互的应用组件。</p>
+<p>在刚开始接触Service，貌似觉得Service和Thread有些类似，后面随着深入了解后，才发现Service和Thread完全是两回事，那么它和Thread的区别在哪里？我觉得主要由以下几点：</p>
+<ol>
+<li>
+<p>Service作为Android组件，有它自己的声明周期，而Thread是操作系统中的概念，它是CPU分配时间片的最小单元。</p>
+</li>
+<li>
+<p>Service是可以被其他组件进行操作的，比如Activity，而Thread不可以。</p>
+</li>
+<li>
+<p>Service是运行于主线程上的，作为remote Service后，它是运行在独立的进程中的main线程上的，而Thread的运行是独立的，在new Thread后就于它所在的线程无关了。</p>
+</li>
+</ol>
+<h3 id="service的启动方式"><a class="markdownIt-Anchor" href="#service的启动方式"></a> Service的启动方式</h3>
+<h4 id="startservice"><a class="markdownIt-Anchor" href="#startservice"></a> startService</h4>
+<p>通过startService启动的Service会一直在后台运行，直到手动stopService或者stopSelf，这种方式启动的Service不和Activity组件进行交互，它经历的生命周期为onCreate-&gt;onStartCommand-&gt;onDestroy</p>
+<h4 id="bindservice"><a class="markdownIt-Anchor" href="#bindservice"></a> bindService</h4>
+<p>通过bindService可以将Service和其他应用组件进行绑定，这时Service是以Server的形式为其提供服务的，绑定Service的组件可以调用Service提供的方法，这种方式同启动方式不同，绑定的service的生命周期通常只是在为组件提供服务时处于运行状态，并不时一直在后台运行，组件解除绑定后，service相应的就被销毁了。bindService的生命周期为 onCreate-&gt;onBind-&gt;onUnbind-&gt;onDestroy，需要注意的时多次bindService后只需要一次unbind即可.</p>
+<h3 id="远程服务"><a class="markdownIt-Anchor" href="#远程服务"></a> 远程服务</h3>
+<p>当在AndroidMainfest的Service标签中中指定了android:process时，代表Service将运行于独立的进程中。这时候如果通过bindService绑定服务可能就需要借助于AIDL了(Messenger也是可以的)。 否则组件和Sevice运行在相同的进程中，这时候只需要在服务端拓展Binder类后返回即可。</p>
+<h3 id="service绑定和启动的转换"><a class="markdownIt-Anchor" href="#service绑定和启动的转换"></a> Service绑定和启动的转换</h3>
+<p>Service的绑定和启动是可以同时进行的，即可以同时通过startService和bindService对其进行调用，这时候按照先后顺序有不同的结果。</p>
+<h4 id="先绑定后再启动"><a class="markdownIt-Anchor" href="#先绑定后再启动"></a> 先绑定后再启动</h4>
+<p>这种方式启动后service,Service转为启动方式，也就是服务运行不受绑定组件的限制，会一直在后台运行，直到stopService或者stopSelf。</p>
+<h4 id="先启动后在绑定"><a class="markdownIt-Anchor" href="#先启动后在绑定"></a> 先启动后在绑定</h4>
+<p>这种情况下，Service先是以启动方式运行在后台，当组件对Service进行绑定后，仍然可以对Service继续请求操作，只是解除绑定后,Service依然会在后台继续运行，不受解绑的影响。</p>
+<h2 id="startservice的源码分析"><a class="markdownIt-Anchor" href="#startservice的源码分析"></a> startService的源码分析</h2>
+<p>接下来，我们将通过阅读Service的源码来进一步了解Android中的Service是如果启动的。startService是从ContextImpl开始的，它是Context上下文的实现类，我们的Activity继承自ContextThemeWrapper，后者又继承自ContextWrapper,在ContextWrapper中有个Context的mBase成员，它实际上就是ContextImpl，因为Context只是一个抽象类。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//Service的启动状态流程 </span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> ComponentName <span class="title">startService</span><span class="params">(Intent service)</span> </span>&#123;</span><br><span class="line">    warnIfCallingFromSystemProcess();</span><br><span class="line">    <span class="keyword">return</span> startServiceCommon(service, mUser);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> ComponentName <span class="title">startServiceCommon</span><span class="params">(Intent service, UserHandle user)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        validateServiceIntent(service);<span class="comment">//校验service的Intent</span></span><br><span class="line">        service.prepareToLeaveProcess();</span><br><span class="line">        <span class="comment">//通过AMS的binder代理进行IPC调用</span></span><br><span class="line">        <span class="comment">/**这里对参数进行说明：</span></span><br><span class="line"><span class="comment">            * mMainThread.getApplicationThread()： 是个ApplicationThread对象，它是个Binder server</span></span><br><span class="line"><span class="comment">            * 这里将它传递给AMS，AMS使用它和应用程序进行交互。</span></span><br><span class="line"><span class="comment">            * service：要启动的service的intent</span></span><br><span class="line"><span class="comment">            * service.resolveTypeIfNeeded(getContentResolver())：MIME类型，未指定为null</span></span><br><span class="line"><span class="comment">            * user.getIdentifier：启动进程的用户id</span></span><br><span class="line"><span class="comment">            * */</span></span><br><span class="line">        ComponentName cn = ActivityManagerNative.getDefault().startService(</span><br><span class="line">            mMainThread.getApplicationThread(), service,</span><br><span class="line">            service.resolveTypeIfNeeded(getContentResolver()), user.getIdentifier());</span><br><span class="line">        ……</span><br><span class="line">        <span class="keyword">return</span> cn;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>startService开始调用startServiceCommon，在startServiceCommon中一开始先进行Intent的校验，在Android 4.4中对service的隐式启动做了安全警告，而在Android 5.1禁止通过隐式方式来启动service，接下来就是通过IPC Binder调用AMS的startService调用过程，这里需要注意传递的参数。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//AMS端启动service</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> ComponentName <span class="title">startService</span><span class="params">(IApplicationThread caller, Intent service,String resolvedType, <span class="keyword">int</span> userId)</span> </span>&#123;</span><br><span class="line">    enforceNotIsolatedCaller(<span class="string">"startService"</span>);</span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">synchronized</span>(<span class="keyword">this</span>) &#123;</span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">int</span> callingPid = Binder.getCallingPid();<span class="comment">//调用者进程的pid</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">int</span> callingUid = Binder.getCallingUid();<span class="comment">//调用者进程的uid</span></span><br><span class="line">            <span class="comment">//这里清理调用者进程的uid和pid并将其保存在origId中，设置为当前进程的uid和pid，这是为了方便</span></span><br><span class="line">        <span class="comment">//Binder server在当前进程中调用该进程的其他组件</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> origId = Binder.clearCallingIdentity();</span><br><span class="line">        <span class="comment">//进一步调用startServiceLocked，这里的mServices为ActivityService,AMS使用它来管理应用端的service</span></span><br><span class="line">        ComponentName res = mServices.startServiceLocked(caller, service,</span><br><span class="line">                resolvedType, callingPid, callingUid, userId);</span><br><span class="line">        Binder.restoreCallingIdentity(origId);<span class="comment">//还原调用者的pid和uid</span></span><br><span class="line">        <span class="keyword">return</span> res;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在AMS的startService中进一步调用startServiceLocked并传递给其调用者pid和uid信息。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//service的启动核心过程</span></span><br><span class="line"><span class="function">ComponentName <span class="title">startServiceLocked</span><span class="params">(IApplicationThread caller,</span></span></span><br><span class="line"><span class="function"><span class="params">        Intent service, String resolvedType,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">int</span> callingPid, <span class="keyword">int</span> callingUid, <span class="keyword">int</span> userId)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> callerFg;<span class="comment">//代表是否是前台启动的</span></span><br><span class="line">    <span class="keyword">if</span> (caller != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="comment">//这里先通过caller获取到调用者的进程信息，放在ProcessRecord中</span></span><br><span class="line">        <span class="keyword">final</span> ProcessRecord callerApp = mAm.getRecordForAppLocked(caller);</span><br><span class="line">        <span class="keyword">if</span> (callerApp == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> SecurityException(</span><br><span class="line">                    <span class="string">"Unable to find app for caller "</span> + caller</span><br><span class="line">                    + <span class="string">" (pid="</span> + Binder.getCallingPid()</span><br><span class="line">                    + <span class="string">") when starting service "</span> + service);</span><br><span class="line">        &#125;</span><br><span class="line">        callerFg = callerApp.setSchedGroup != Process.THREAD_GROUP_BG_NONINTERACTIVE;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        callerFg = <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//通过service intent获取到AndroidManifest中关于service定义的详细信息</span></span><br><span class="line">    ServiceLookupResult res =</span><br><span class="line">        retrieveServiceLocked(service, resolvedType,</span><br><span class="line">                callingPid, callingUid, userId, <span class="keyword">true</span>, callerFg);</span><br><span class="line">    <span class="keyword">if</span> (res == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (res.record == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> ComponentName(<span class="string">"!"</span>, res.permission != <span class="keyword">null</span></span><br><span class="line">                ? res.permission : <span class="string">"private to package"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//从获取的ServiceLookupResult中取到ServiceRecord</span></span><br><span class="line">    ServiceRecord r = res.record;</span><br><span class="line">    <span class="comment">//检查权限</span></span><br><span class="line">    NeededUriGrants neededGrants = mAm.checkGrantUriPermissionFromIntentLocked(</span><br><span class="line">            callingUid, r.packageName, service, service.getFlags(), <span class="keyword">null</span>);</span><br><span class="line">    <span class="keyword">if</span> (unscheduleServiceRestartLocked(r, callingUid, <span class="keyword">false</span>)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (DEBUG_SERVICE) Slog.v(TAG, <span class="string">"START SERVICE WHILE RESTART PENDING: "</span> + r);</span><br><span class="line">    &#125;</span><br><span class="line">    r.lastActivity = SystemClock.uptimeMillis();</span><br><span class="line">    r.startRequested = <span class="keyword">true</span>;</span><br><span class="line">    r.delayedStop = <span class="keyword">false</span>;</span><br><span class="line">    r.pendingStarts.add(<span class="keyword">new</span> ServiceRecord.StartItem(r, <span class="keyword">false</span>, r.makeNextStartId(),</span><br><span class="line">            service, neededGrants));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> ServiceMap smap = getServiceMap(r.userId);</span><br><span class="line">    <span class="keyword">boolean</span> addToStarting = <span class="keyword">false</span>;</span><br><span class="line">    <span class="keyword">if</span> (!callerFg &amp;&amp; r.app == <span class="keyword">null</span> &amp;&amp; mAm.mStartedUsers.get(r.userId) != <span class="keyword">null</span>) &#123;</span><br><span class="line">        ProcessRecord proc = mAm.getProcessRecordLocked(r.processName, r.appInfo.uid, <span class="keyword">false</span>);</span><br><span class="line">        <span class="keyword">if</span> (proc == <span class="keyword">null</span> || proc.curProcState &gt; ActivityManager.PROCESS_STATE_RECEIVER) &#123;</span><br><span class="line">            <span class="keyword">if</span> (r.delayed) &#123;</span><br><span class="line">                <span class="keyword">return</span> r.name;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (smap.mStartingBackground.size() &gt;= mMaxStartingBackground) &#123;</span><br><span class="line">                smap.mDelayedStartList.add(r);</span><br><span class="line">                r.delayed = <span class="keyword">true</span>;</span><br><span class="line">                <span class="keyword">return</span> r.name;</span><br><span class="line">            &#125;</span><br><span class="line">            addToStarting = <span class="keyword">true</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (proc.curProcState &gt;= ActivityManager.PROCESS_STATE_SERVICE) &#123;</span><br><span class="line">            addToStarting = <span class="keyword">true</span>;</span><br><span class="line">        &#125; </span><br><span class="line">    &#125; </span><br><span class="line">    ……</span><br><span class="line">    <span class="comment">//进一步启动service</span></span><br><span class="line">    <span class="keyword">return</span> startServiceInnerLocked(smap, service, r, callerFg, addToStarting);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>首先通过调用者的信息获取到进程信息callerApp，随后通过retrieveServiceLocked获取到解析的Service在AndroidManifest的信息。在这个方法里会为Service创建ServiceRecord它在AMS端代表了当前启动的service，随后初始化了一些信息，比如将startRequested置为true表示请求进行启动service，第一次启动service时r.app是未绑定到ProcessRecord上的，通过getProcessRecordLocked获取service的进行信息，如果未指定android:process时，那么默认是在当前应用进程中启动。随后调用startServiceInnerLocked进一步启动service。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">ComponentName <span class="title">startServiceInnerLocked</span><span class="params">(ServiceMap smap, Intent service,</span></span></span><br><span class="line"><span class="function"><span class="params">        ServiceRecord r, <span class="keyword">boolean</span> callerFg, <span class="keyword">boolean</span> addToStarting)</span> </span>&#123;</span><br><span class="line">    ProcessStats.ServiceState stracker = r.getTracker();</span><br><span class="line">    ……</span><br><span class="line">    <span class="comment">//进一步启动service，这里会做一些实质性的工作</span></span><br><span class="line">    String error = bringUpServiceLocked(r, service.getFlags(), callerFg, <span class="keyword">false</span>);</span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">return</span> r.name;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//在这里面会做一些service启动的实质性工作</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">final</span> String <span class="title">bringUpServiceLocked</span><span class="params">(ServiceRecord r,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">int</span> intentFlags, <span class="keyword">boolean</span> execInFg, <span class="keyword">boolean</span> whileRestarting)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//r.app和 r.app.thread不为null，说明service已经启动了，</span></span><br><span class="line">    <span class="comment">//这时候通过sendServiceArgsLocked进一步通知应用端</span></span><br><span class="line">    <span class="keyword">if</span> (r.app != <span class="keyword">null</span> &amp;&amp; r.app.thread != <span class="keyword">null</span>) &#123;</span><br><span class="line">        sendServiceArgsLocked(r, execInFg, <span class="keyword">false</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">if</span> (mRestartingServices.remove(r)) &#123;<span class="comment">//正在启动service，就将其从重启列表中移除</span></span><br><span class="line">        clearRestartingIfNeededLocked(r);</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//如果设置了isolatedProcess，服务会在一个特殊的隔离进程下运行，这个进程与系统其他进程分开且没有自己的权限。</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> isolated = (r.serviceInfo.flags&amp;ServiceInfo.FLAG_ISOLATED_PROCESS) != <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">final</span> String procName = r.processName;<span class="comment">//进程名，如果有的话</span></span><br><span class="line">    ProcessRecord app;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!isolated) &#123;</span><br><span class="line">        <span class="comment">//获取service所在进程</span></span><br><span class="line">        app = mAm.getProcessRecordLocked(procName, r.appInfo.uid, <span class="keyword">false</span>);</span><br><span class="line">        <span class="keyword">if</span> (app != <span class="keyword">null</span> &amp;&amp; app.thread != <span class="keyword">null</span>) &#123;<span class="comment">//如果它和应用进程同属一个进程</span></span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                app.addPackage(r.appInfo.packageName, mAm.mProcessStats);</span><br><span class="line">                realStartServiceLocked(r, app, execInFg);<span class="comment">//直接启动该service</span></span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">            &#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">                Slog.w(TAG, <span class="string">"Exception when starting service "</span> + r.shortName, e);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// If a dead object exception was thrown -- fall through to</span></span><br><span class="line">            <span class="comment">// restart the application.</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// If this service runs in an isolated process, then each time</span></span><br><span class="line">        <span class="comment">// we call startProcessLocked() we will get a new isolated</span></span><br><span class="line">        <span class="comment">// process, starting another process if we are currently waiting</span></span><br><span class="line">        <span class="comment">// for a previous process to come up.  To deal with this, we store</span></span><br><span class="line">        <span class="comment">// in the service any current isolated process it is running in or</span></span><br><span class="line">        <span class="comment">// waiting to have come up.</span></span><br><span class="line">        app = r.isolatedProc;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Not running -- get it started, and enqueue this service record</span></span><br><span class="line">    <span class="comment">// to be executed when the app comes up.</span></span><br><span class="line">    <span class="keyword">if</span> (app == <span class="keyword">null</span>) &#123;<span class="comment">//如果未找到service相应的进程，则需要为它启动一个单独的进程，进程名字为procName</span></span><br><span class="line">        <span class="comment">//这里为service启动进程和为activity启动进程是类似的，都是通过zygote forK出来的。</span></span><br><span class="line">        <span class="keyword">if</span> ((app=mAm.startProcessLocked(procName, r.appInfo, <span class="keyword">true</span>, intentFlags,</span><br><span class="line">                <span class="string">"service"</span>, r.name, <span class="keyword">false</span>, isolated, <span class="keyword">false</span>)) == <span class="keyword">null</span>) &#123;</span><br><span class="line">            bringDownServiceLocked(r);</span><br><span class="line">            <span class="keyword">return</span> msg;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (isolated) &#123;</span><br><span class="line">            r.isolatedProc = app;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//注意启动进程的操作是异步的，通知zygote创建进程后将ServiceRecord放到service的等待列表中，</span></span><br><span class="line">    <span class="comment">//等进程启动完成后会从该列表取出service运行。</span></span><br><span class="line">    <span class="keyword">if</span> (!mPendingServices.contains(r)) &#123;</span><br><span class="line">        mPendingServices.add(r);</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在startServiceInnerLocked中会调用bringUpServiceLocked进行一些启动的实质性工作，首先会检查ServiceRecord的app和app.thread，如果它们都不为null，说明service已经启动了，这时候走sendServiceArgsLocked的流程，后面我们看到它是如果工作的。</p>
+<p>如果service设置了isolatedProcess，那么它会在一个单独的隔离进程中启动，否则通过AMS找到service的进程，如果它和应用进程是同一个进程，那么就直接调用realStartServiceLocked进行service的启动，否则service指定了启动的进程，这时候需要调用startProcessLocked通知zygote为其创建进程，并将其serviceRecord添加到mPendingServices，当进程创建完成后再从其中取出service进行启动流程，这个过程是异步进行的。</p>
+<p>下面我们就分别看看这几种情况下的service是如何启动的：</p>
+<ol>
+<li>Service未启动的情况，这时候调用startProcessLocked进行启动</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//为应用或者服务创建进程</span></span><br><span class="line"><span class="function"><span class="keyword">final</span> ProcessRecord <span class="title">startProcessLocked</span><span class="params">(String processName,</span></span></span><br><span class="line"><span class="function"><span class="params">        ApplicationInfo info, <span class="keyword">boolean</span> knownToBeDead, <span class="keyword">int</span> intentFlags,</span></span></span><br><span class="line"><span class="function"><span class="params">        String hostingType, ComponentName hostingName, <span class="keyword">boolean</span> allowWhileBooting,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">boolean</span> isolated, <span class="keyword">boolean</span> keepIfLarge)</span> </span>&#123;</span><br><span class="line">    ProcessRecord app;</span><br><span class="line">    </span><br><span class="line">    ……</span><br><span class="line">    <span class="comment">//开启新的进程</span></span><br><span class="line">    startProcessLocked(app, hostingType, hostingNameStr);</span><br><span class="line">    <span class="keyword">return</span> (app.pid != <span class="number">0</span>) ? app : <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//开启新进程 同zygote交互</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">startProcessLocked</span><span class="params">(ProcessRecord app,</span></span></span><br><span class="line"><span class="function"><span class="params">        String hostingType, String hostingNameStr)</span> </span>&#123;</span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ……</span><br><span class="line">        <span class="comment">// Start the process.  It will either succeed and return a result containing</span></span><br><span class="line">        <span class="comment">// the PID of the new process, or else throw a RuntimeException.</span></span><br><span class="line">        <span class="comment">//为service或者activity创建新的进程 通过zygote进程执行 创建完成后回调ActivityThread并执行其main方法</span></span><br><span class="line">        Process.ProcessStartResult startResult = Process.start(<span class="string">"android.app.ActivityThread"</span>,</span><br><span class="line">                app.processName, uid, uid, gids, debugFlags, mountExternal,</span><br><span class="line">                app.info.targetSdkVersion, app.info.seinfo, <span class="keyword">null</span>);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (RuntimeException e) &#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于service进程不存在情况，需要通过zygote未service创建进程，这个过程同应用程序启动是类似的，Zygote未service创建完进程后，会在主线程中执行ActivityThread的main方法。这个主线程实际上就是ui线程。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//为activity 和 service创建完进程后，会在主线程(ui线程)中执行ActivityThread的main方法</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">    SamplingProfilerIntegration.start();</span><br><span class="line">    CloseGuard.setEnabled(<span class="keyword">false</span>);</span><br><span class="line">    Environment.initForCurrentUser();</span><br><span class="line">    <span class="comment">// Set the reporter for event logging in libcore</span></span><br><span class="line">    EventLogger.setReporter(<span class="keyword">new</span> EventLoggingReporter());</span><br><span class="line">    Security.addProvider(<span class="keyword">new</span> AndroidKeyStoreProvider());</span><br><span class="line">    Process.setArgV0(<span class="string">"&lt;pre-initialized&gt;"</span>);</span><br><span class="line">    Looper.prepareMainLooper();<span class="comment">//准备Looper循环</span></span><br><span class="line">    ActivityThread thread = <span class="keyword">new</span> ActivityThread();</span><br><span class="line">    thread.attach(<span class="keyword">false</span>);<span class="comment">//这里会通知AMS应用进程启动完毕</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (sMainThreadHandler == <span class="keyword">null</span>) &#123;</span><br><span class="line">        sMainThreadHandler = thread.getHandler();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    AsyncTask.init();</span><br><span class="line">    Looper.loop();<span class="comment">//开启Looper循环</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">"Main thread loop unexpectedly exited"</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">attach</span><span class="params">(<span class="keyword">boolean</span> system)</span> </span>&#123;</span><br><span class="line">    sCurrentActivityThread = <span class="keyword">this</span>;</span><br><span class="line">    mSystemThread = system;</span><br><span class="line">    <span class="keyword">if</span> (!system) &#123;</span><br><span class="line">        ViewRootImpl.addFirstDrawHandler(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                ensureJitEnabled();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        android.ddm.DdmHandleAppName.setAppName(<span class="string">"&lt;pre-initialized&gt;"</span>,</span><br><span class="line">                                                UserHandle.myUserId());</span><br><span class="line">        RuntimeInit.setApplicationObject(mAppThread.asBinder());</span><br><span class="line">        IActivityManager mgr = ActivityManagerNative.getDefault();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            mgr.attachApplication(mAppThread);<span class="comment">//实际上是通知AMS进程启动起来了</span></span><br><span class="line">        &#125; <span class="keyword">catch</span> (RemoteException ex) &#123;</span><br><span class="line">            <span class="comment">// Ignore</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    …… </span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>在main方法中会调用ActivityThread的attach方法，这里会通过binder调用AMS的attachApplication，实际上就是让AMS知道这个进程的存在。AMS中的attchApplication只是简单的调用attachApplicationLocked来进行进一步的启动。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"> <span class="comment">//在这里会启动等待新进程的activity或者service</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">attachApplicationLocked</span><span class="params">(IApplicationThread thread,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">int</span> pid)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">     ……       </span><br><span class="line">    <span class="comment">//通知应用进程进行bind</span></span><br><span class="line">    thread.bindApplication(processName, appInfo, providers,</span><br><span class="line">            app.instrumentationClass, profileFile, profileFd, profileAutoStop,</span><br><span class="line">            app.instrumentationArguments, app.instrumentationWatcher,</span><br><span class="line">            app.instrumentationUiAutomationConnection, testMode, enableOpenGlTrace,</span><br><span class="line">            isRestrictedBackupMode || !normalMode, app.persistent,</span><br><span class="line">            <span class="keyword">new</span> Configuration(mConfiguration), app.compat, getCommonServicesLocked(),</span><br><span class="line">            mCoreSettingsObserver.getCoreSettingsLocked());      </span><br><span class="line"></span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">if</span> (normalMode) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">//通知ActivityStackSupervisor 进程已经创建，这时候需要看由没有要启动的activity</span></span><br><span class="line">            <span class="keyword">if</span> (mStackSupervisor.attachApplicationLocked(app, mHeadless)) &#123;</span><br><span class="line">                didSomething = <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            badApp = <span class="keyword">true</span>;<span class="comment">//出错</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Find any services that should be running in this process...</span></span><br><span class="line">    <span class="keyword">if</span> (!badApp) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">//通知ActivityServices 进程已经创建 这时候看有没有要启动的service</span></span><br><span class="line">            didSomething |= mServices.attachApplicationLocked(app, processName);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            badApp = <span class="keyword">true</span>;<span class="comment">//出错</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>进程启动后，在AMS一端会去判断是否有需要启动的Activity或者service，之前我们了解到在启动service之前，AMS已经做好了准备，这里就去真正的启动service了。</p>
+<blockquote>
+<p>frameworks/base/services/java/com/android/server/am/ActiveServices.java</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//进程创建后会通过这个方法来通知AMS</span></span><br><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">attachApplicationLocked</span><span class="params">(ProcessRecord proc, String processName)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    <span class="keyword">boolean</span> didSomething = <span class="keyword">false</span>;</span><br><span class="line">    <span class="comment">// Collect any services that are waiting for this process to come up.</span></span><br><span class="line">    <span class="keyword">if</span> (mPendingServices.size() &gt; <span class="number">0</span>) &#123;<span class="comment">//看有没有等待启动的服务</span></span><br><span class="line">        ServiceRecord sr = <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">//遍历等待的服务</span></span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;mPendingServices.size(); i++) &#123;</span><br><span class="line">                sr = mPendingServices.get(i);</span><br><span class="line">                </span><br><span class="line">                <span class="keyword">if</span> (proc != sr.isolatedProc &amp;&amp; (proc.uid != sr.appInfo.uid</span><br><span class="line">                        || !processName.equals(sr.processName))) &#123;</span><br><span class="line">                    <span class="keyword">continue</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="comment">//从等待队列中移除    </span></span><br><span class="line">                mPendingServices.remove(i);</span><br><span class="line">                i--;</span><br><span class="line">                proc.addPackage(sr.appInfo.packageName, mAm.mProcessStats);</span><br><span class="line">                <span class="comment">//启动service</span></span><br><span class="line">                realStartServiceLocked(sr, proc, sr.createdFromFg);</span><br><span class="line">                didSomething = <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            Slog.w(TAG, <span class="string">"Exception in new application when starting service "</span></span><br><span class="line">                    + sr.shortName, e);</span><br><span class="line">            <span class="keyword">throw</span> e;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">return</span> didSomething;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在ActiveServices的attachApplicationLocked方法中会去从等待列表中取出要启动的service，然后通过realStartServiceLocked来进行真正的启动</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//这里是AMS中启动Service的最后一步，完成收尾工作</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">realStartServiceLocked</span><span class="params">(ServiceRecord r,</span></span></span><br><span class="line"><span class="function"><span class="params">        ProcessRecord app, <span class="keyword">boolean</span> execInFg)</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">    ……</span><br><span class="line">    r.app = app;</span><br><span class="line">    r.restartTime = r.lastActivity = SystemClock.uptimeMillis();</span><br><span class="line"></span><br><span class="line">    app.services.add(r);</span><br><span class="line">    bumpServiceExecutingLocked(r, execInFg, <span class="string">"create"</span>);</span><br><span class="line">    mAm.updateLruProcessLocked(app, <span class="keyword">false</span>, <span class="keyword">null</span>);</span><br><span class="line">    mAm.updateOomAdjLocked();<span class="comment">//更新oom_adj，这个代表了该进程的优先级</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">boolean</span> created = <span class="keyword">false</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        String nameTerm;</span><br><span class="line">        <span class="keyword">int</span> lastPeriod = r.shortName.lastIndexOf(<span class="string">'.'</span>);</span><br><span class="line">        nameTerm = lastPeriod &gt;= <span class="number">0</span> ? r.shortName.substring(lastPeriod) : r.shortName;</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">synchronized</span> (r.stats.getBatteryStats()) &#123;</span><br><span class="line">            r.stats.startLaunchedLocked();</span><br><span class="line">        &#125;</span><br><span class="line">        mAm.ensurePackageDexOpt(r.serviceInfo.packageName);</span><br><span class="line">        app.forceProcessStateUpTo(ActivityManager.PROCESS_STATE_SERVICE);</span><br><span class="line">        <span class="comment">//通知应用进程创建Service</span></span><br><span class="line">        app.thread.scheduleCreateService(r, r.serviceInfo,</span><br><span class="line">                mAm.compatibilityInfoForPackageLocked(r.serviceInfo.applicationInfo),</span><br><span class="line">                app.repProcState);</span><br><span class="line">        r.postNotification();</span><br><span class="line">        created = <span class="keyword">true</span>;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (!created) &#123;</span><br><span class="line">            app.services.remove(r);</span><br><span class="line">            r.app = <span class="keyword">null</span>;</span><br><span class="line">            scheduleServiceRestartLocked(r, <span class="keyword">false</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    requestServiceBindingsLocked(r, execInFg);</span><br><span class="line">    ……</span><br><span class="line">    <span class="comment">//通知service进行onStartCommand</span></span><br><span class="line">    sendServiceArgsLocked(r, execInFg, <span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">   ……</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在realStartService中会通过IApplicationThread通知应用端服务的启动，在scheduleCreateService的IPC调用中，最终会触发service的onCreate回调。而在sendServiceArgsLocked会触发onStartCommand的回调，至此，service在ASM一端的启动过程就完成了。</p>
+<ol start="2">
+<li>当service的进程已经存在，那么直接调用realStartServiceLocked进行启动即可。</li>
+<li>当service已经启动，这时候需要调用sendServiceArgsLocked来进一步完成启动，这里主要是回调onStartCommand</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">sendServiceArgsLocked</span><span class="params">(ServiceRecord r, <span class="keyword">boolean</span> execInFg,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">boolean</span> oomAdjusted)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> N = r.pendingStarts.size();</span><br><span class="line">    <span class="keyword">if</span> (N == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (r.pendingStarts.size() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            ServiceRecord.StartItem si = r.pendingStarts.remove(<span class="number">0</span>);</span><br><span class="line">            <span class="keyword">if</span> (si.intent == <span class="keyword">null</span> &amp;&amp; N &gt; <span class="number">1</span>) &#123;</span><br><span class="line">                <span class="comment">// If somehow we got a dummy null intent in the middle,</span></span><br><span class="line">                <span class="comment">// then skip it.  DO NOT skip a null intent when it is</span></span><br><span class="line">                <span class="comment">// the only one in the list -- this is to support the</span></span><br><span class="line">                <span class="comment">// onStartCommand(null) case.</span></span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            si.deliveredTime = SystemClock.uptimeMillis();</span><br><span class="line">            r.deliveredStarts.add(si);</span><br><span class="line">            si.deliveryCount++;</span><br><span class="line">            <span class="keyword">if</span> (si.neededGrants != <span class="keyword">null</span>) &#123;</span><br><span class="line">                mAm.grantUriPermissionUncheckedFromIntentLocked(si.neededGrants,</span><br><span class="line">                        si.getUriPermissionsLocked());</span><br><span class="line">            &#125;</span><br><span class="line">            bumpServiceExecutingLocked(r, execInFg, <span class="string">"start"</span>);</span><br><span class="line">            <span class="keyword">if</span> (!oomAdjusted) &#123;</span><br><span class="line">                oomAdjusted = <span class="keyword">true</span>;</span><br><span class="line">                mAm.updateOomAdjLocked(r.app);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">int</span> flags = <span class="number">0</span>;</span><br><span class="line">            <span class="keyword">if</span> (si.deliveryCount &gt; <span class="number">1</span>) &#123;</span><br><span class="line">                flags |= Service.START_FLAG_RETRY;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (si.doneExecutingCount &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                flags |= Service.START_FLAG_REDELIVERY;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//通知应用端服务启动参数</span></span><br><span class="line">            r.app.thread.scheduleServiceArgs(r, si.taskRemoved, si.id, flags, si.intent);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>实际上这里是通过IApplicationThread回调应用端的scheduleServiceArgs方法，这是一个Binder的IPC调用。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"> <span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">scheduleServiceArgs</span><span class="params">(IBinder token, <span class="keyword">boolean</span> taskRemoved, <span class="keyword">int</span> startId,</span></span></span><br><span class="line"><span class="function"><span class="params">    <span class="keyword">int</span> flags ,Intent args)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//Service启动参数</span></span><br><span class="line">    ServiceArgsData s = <span class="keyword">new</span> ServiceArgsData();</span><br><span class="line">    s.token = token;</span><br><span class="line">    s.taskRemoved = taskRemoved;</span><br><span class="line">    s.startId = startId;</span><br><span class="line">    s.flags = flags;</span><br><span class="line">    s.args = args;</span><br><span class="line"></span><br><span class="line">    sendMessage(H.SERVICE_ARGS, s);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//通知service启动的请求参数，实际上是调用onStartCommand回调</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">handleServiceArgs</span><span class="params">(ServiceArgsData data)</span> </span>&#123;</span><br><span class="line">    Service s = mServices.get(data.token);<span class="comment">//根据token取到service实例</span></span><br><span class="line">    <span class="keyword">if</span> (s != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (data.args != <span class="keyword">null</span>) &#123;</span><br><span class="line">                data.args.setExtrasClassLoader(s.getClassLoader());</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">int</span> res;</span><br><span class="line">            <span class="keyword">if</span> (!data.taskRemoved) &#123;</span><br><span class="line">                res = s.onStartCommand(data.args, data.flags, data.startId);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                s.onTaskRemoved(data.args);</span><br><span class="line">                res = Service.START_TASK_REMOVED_COMPLETE;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            QueuedWork.waitToFinish();</span><br><span class="line"></span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                ActivityManagerNative.getDefault().serviceDoneExecuting(</span><br><span class="line">                        data.token, <span class="number">1</span>, data.startId, res);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">                <span class="comment">// nothing to do.</span></span><br><span class="line">            &#125;</span><br><span class="line">            ensureJitEnabled();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            <span class="keyword">if</span> (!mInstrumentation.onException(s, e)) &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(</span><br><span class="line">                        <span class="string">"Unable to start service "</span> + s</span><br><span class="line">                        + <span class="string">" with "</span> + data.args + <span class="string">": "</span> + e.toString(), e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以看到scheduleServiceArgs最终会调用handleServiceArgs来进行onStartCommand的回调。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpayimg.png" alt="esli 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipayimg.png" alt="esli 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Android/" rel="tag"># Android</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/[object Object]/aosp-servicemanager-src/" rel="next" title="ServiceManager源码分析">
+                <i class="fa fa-chevron-left"></i> ServiceManager源码分析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/[object Object]/aosp-service-bind-src/" rel="prev" title="Service的启动过程(二)">
+                Service的启动过程(二) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/uploads/avatar.png"
+                alt="esli" />
+            
+              <p class="site-author-name" itemprop="name">esli</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">61</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#service介绍"><span class="nav-number">1.</span> <span class="nav-text"> Service介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#service的启动方式"><span class="nav-number">1.1.</span> <span class="nav-text"> Service的启动方式</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#startservice"><span class="nav-number">1.1.1.</span> <span class="nav-text"> startService</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#bindservice"><span class="nav-number">1.1.2.</span> <span class="nav-text"> bindService</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#远程服务"><span class="nav-number">1.2.</span> <span class="nav-text"> 远程服务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#service绑定和启动的转换"><span class="nav-number">1.3.</span> <span class="nav-text"> Service绑定和启动的转换</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#先绑定后再启动"><span class="nav-number">1.3.1.</span> <span class="nav-text"> 先绑定后再启动</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#先启动后在绑定"><span class="nav-number">1.3.2.</span> <span class="nav-text"> 先启动后在绑定</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#startservice的源码分析"><span class="nav-number">2.</span> <span class="nav-text"> startService的源码分析</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">esli</span>
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("jBNLE1XrpdNfIpNnvp02BNFi-gzGzoHsz", "1KETbc2T1LA8C2oPKVwpbzVm");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

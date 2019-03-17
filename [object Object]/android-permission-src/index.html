@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Android," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="Android6.0以后引入了动态权限机制，一些系统权限的分配需要在app运行中进行分配，而不只是在AndroidManifest中指定。 本篇将针对动态权限的底层分配过程进行分析(基于Android-6.0.1)。  权限分配 我们先看一下请求分配权限的代码 1234567891011121314151617181920212223242526272829//frameworks/support">
+<meta name="keywords" content="Android">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Android6.0 动态权限机制">
+<meta property="og:url" content="http://esligh.github.io/[object Object]/android-permission-src/index.html">
+<meta property="og:site_name" content="esli&#39;s Blog">
+<meta property="og:description" content="Android6.0以后引入了动态权限机制，一些系统权限的分配需要在app运行中进行分配，而不只是在AndroidManifest中指定。 本篇将针对动态权限的底层分配过程进行分析(基于Android-6.0.1)。  权限分配 我们先看一下请求分配权限的代码 1234567891011121314151617181920212223242526272829//frameworks/support">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-03-16T12:47:58.989Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Android6.0 动态权限机制">
+<meta name="twitter:description" content="Android6.0以后引入了动态权限机制，一些系统权限的分配需要在app运行中进行分配，而不只是在AndroidManifest中指定。 本篇将针对动态权限的底层分配过程进行分析(基于Android-6.0.1)。  权限分配 我们先看一下请求分配权限的代码 1234567891011121314151617181920212223242526272829//frameworks/support">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://esligh.github.io/[object Object]/android-permission-src/"/>
+
+
+
+
+
+  <title>Android6.0 动态权限机制 | esli's Blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">esli's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">day day up</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://esligh.github.io/[object Object]/android-permission-src/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="esli">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="esli's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Android6.0 动态权限机制</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-12-22T08:40:40+08:00">
+                2017-12-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AOSP/" itemprop="url" rel="index">
+                    <span itemprop="name">AOSP</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+             <span id="/[object Object]/android-permission-src/" class="leancloud_visitors" data-flag-title="Android6.0 动态权限机制">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Android6.0以后引入了动态权限机制，一些系统权限的分配需要在app运行中进行分配，而不只是在AndroidManifest中指定。</p>
+<p>本篇将针对动态权限的底层分配过程进行分析(基于Android-6.0.1)。</p>
+<h4 id="权限分配"><a class="markdownIt-Anchor" href="#权限分配"></a> 权限分配</h4>
+<p>我们先看一下请求分配权限的代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//frameworks/support/v4/java/android/support/v4/app/ActivityCompat.java</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">requestPermissions</span><span class="params">(<span class="keyword">final</span> @NonNull Activity activity,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">final</span> @NonNull String[] permissions, <span class="keyword">final</span> <span class="keyword">int</span> requestCode)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (Build.VERSION.SDK_INT &gt;= <span class="number">23</span>) &#123;<span class="comment">//对于Android M 以及以上的权限的分配</span></span><br><span class="line">        ActivityCompatApi23.requestPermissions(activity, permissions, requestCode);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (activity <span class="keyword">instanceof</span> OnRequestPermissionsResultCallback) &#123;<span class="comment">//Android M以下的权限分配</span></span><br><span class="line">        Handler handler = <span class="keyword">new</span> Handler(Looper.getMainLooper());</span><br><span class="line">        handler.post(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                <span class="comment">//请求分配的权限结果，如分配就是PERMISSION_GRANTED</span></span><br><span class="line">                <span class="keyword">final</span> <span class="keyword">int</span>[] grantResults = <span class="keyword">new</span> <span class="keyword">int</span>[permissions.length];</span><br><span class="line">                </span><br><span class="line">                PackageManager packageManager = activity.getPackageManager();</span><br><span class="line">                String packageName = activity.getPackageName();</span><br><span class="line"></span><br><span class="line">                <span class="keyword">final</span> <span class="keyword">int</span> permissionCount = permissions.length;</span><br><span class="line">                <span class="comment">//通过包管理的checkPermission来检验是否分配权限</span></span><br><span class="line">                <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; permissionCount; i++) &#123;</span><br><span class="line">                    grantResults[i] = packageManager.checkPermission(</span><br><span class="line">                            permissions[i], packageName);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                ((OnRequestPermissionsResultCallback) activity).onRequestPermissionsResult(</span><br><span class="line">                        requestCode, permissions, grantResults);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>requestPermissions对于Android M的前后版本都分别做了处理，Android M以上通过ActivityCompatApi23.requestPermissions进行权限的请求，而Android M以下通过PackageManager来检查Permission的分配情况。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//frameworks/support/v4/api23/android/support/v4/app/ActivityCompat23.java</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ActivityCompatApi23</span> </span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">requestPermissions</span><span class="params">(Activity activity, String[] permissions,</span></span></span><br><span class="line"><span class="function"><span class="params">            <span class="keyword">int</span> requestCode)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (activity <span class="keyword">instanceof</span> RequestPermissionsRequestCodeValidator) &#123;</span><br><span class="line">            ((RequestPermissionsRequestCodeValidator) activity)</span><br><span class="line">                    .validateRequestPermissionsRequestCode(requestCode);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//通过Android M的Activity处理</span></span><br><span class="line">        activity.requestPermissions(permissions, requestCode);</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//frameworks/base/core/java/android/app/Activity.java</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">requestPermissions</span><span class="params">(@NonNull String[] permissions, <span class="keyword">int</span> requestCode)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mHasCurrentPermissionsRequest) &#123;</span><br><span class="line">        Log.w(TAG, <span class="string">"Can reqeust only one set of permissions at a time"</span>);</span><br><span class="line">        <span class="comment">// Dispatch the callback with empty arrays which means a cancellation.</span></span><br><span class="line">        onRequestPermissionsResult(requestCode, <span class="keyword">new</span> String[<span class="number">0</span>], <span class="keyword">new</span> <span class="keyword">int</span>[<span class="number">0</span>]);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//通过请求的权限构造Intent，弹出请求的窗口</span></span><br><span class="line">    Intent intent = getPackageManager().buildRequestPermissionsIntent(permissions);</span><br><span class="line">    startActivityForResult(REQUEST_PERMISSIONS_WHO_PREFIX, intent, requestCode, <span class="keyword">null</span>);</span><br><span class="line">    mHasCurrentPermissionsRequest = <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>ActivityCompat23将请求权限的任务交给Activity来完成，在Activity中，通过请求的permission来构造一个Intent随后启动Activity来弹出请求的界面。Intent的构造是通过PackageManager的buildRequestPermissionsIntent方法构造的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Intent <span class="title">buildRequestPermissionsIntent</span><span class="params">(@NonNull String[] permissions)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (ArrayUtils.isEmpty(permissions)) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException(<span class="string">"permission cannot be null or empty"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    Intent intent = <span class="keyword">new</span> Intent(ACTION_REQUEST_PERMISSIONS);</span><br><span class="line">    intent.putExtra(EXTRA_REQUEST_PERMISSIONS_NAMES, permissions);</span><br><span class="line">    intent.setPackage(getPermissionControllerPackageName());</span><br><span class="line">    <span class="keyword">return</span> intent;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Intent的action是ACTION_REQUEST_PERMISSIONS，它是这么定义的</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> String ACTION_REQUEST_PERMISSIONS =</span><br><span class="line">            <span class="string">"android.content.pm.action.REQUEST_PERMISSIONS"</span>;</span><br></pre></td></tr></table></figure>
+<p>随后一个参数就是具体请求的permission数组和一个权限分派控制的相关的包名。所以activity的请求窗口是通过隐式启动的。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">/packages/apps/PackageInstaller/AndroidManifest.xml</span><br><span class="line">&lt;activity android:name=<span class="string">".permission.ui.GrantPermissionsActivity"</span></span><br><span class="line">        android:configChanges=<span class="string">"orientation|keyboardHidden|screenSize"</span></span><br><span class="line">        android:excludeFromRecents=<span class="string">"true"</span></span><br><span class="line">        android:theme=<span class="string">"@style/GrantPermissions"</span>&gt;</span><br><span class="line">    &lt;intent-filter&gt;</span><br><span class="line">        &lt;action android:name=<span class="string">"android.content.pm.action.REQUEST_PERMISSIONS"</span> /&gt;</span><br><span class="line">        &lt;category android:name=<span class="string">"android.intent.category.DEFAULT"</span> /&gt;</span><br><span class="line">    &lt;/intent-filter&gt;</span><br><span class="line">&lt;/activity&gt;</span><br></pre></td></tr></table></figure>
+<p>从intent-fliter可以看到，这个GrantPermissionsActivity就是我们进行权限分配的弹出窗口。GrantPermissionsActivity它的布局文件定义在packages/apps/PackageInstaller/res/layout/grant_permissions.xml，从GrantPermissionsActivity的实现来看它就是一个长的像Dialog的activity，这里我们重点关注在该Activity中对权限的允许和拒绝的处理。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//packages/apps/PackageInstaller/src/com/android/packageinstaller/permission/ui/GrantPermissionsDefaultViewHandler.java</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onClick</span><span class="params">(View view)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">switch</span> (view.getId()) &#123;</span><br><span class="line">        <span class="keyword">case</span> R.id.permission_allow_button:<span class="comment">//允许</span></span><br><span class="line">            <span class="keyword">if</span> (mResultListener != <span class="keyword">null</span>) &#123;</span><br><span class="line">                view.clearAccessibilityFocus();</span><br><span class="line">                mResultListener.onPermissionGrantResult(mGroupName, <span class="keyword">true</span>, <span class="keyword">false</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> R.id.permission_deny_button:<span class="comment">//拒绝</span></span><br><span class="line">            mAllowButton.setEnabled(<span class="keyword">true</span>);</span><br><span class="line">            <span class="keyword">if</span> (mResultListener != <span class="keyword">null</span>) &#123;</span><br><span class="line">                view.clearAccessibilityFocus();</span><br><span class="line">                mResultListener.onPermissionGrantResult(mGroupName, <span class="keyword">false</span>,</span><br><span class="line">                        mDoNotAskCheckbox.isChecked());</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> R.id.do_not_ask_checkbox:<span class="comment">//不再询问</span></span><br><span class="line">            mAllowButton.setEnabled(!mDoNotAskCheckbox.isChecked());</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里是通过GrantPermissionsDefaultViewHandler来控制GrantPermissionsActivity的ui视图，按钮的点击事件是通过GrantPermissionsViewHandler.ResultListener接口来处理的，GrantPermissionsActivity实现了该接口。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onPermissionGrantResult</span><span class="params">(String name, <span class="keyword">boolean</span> granted, <span class="keyword">boolean</span> doNotAskAgain)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (isObscuredTouch()) &#123;</span><br><span class="line">        showOverlayDialog();</span><br><span class="line">        finish();</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    GroupState groupState = mRequestGrantPermissionGroups.get(name);</span><br><span class="line">    <span class="keyword">if</span> (groupState.mGroup != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (granted) &#123;</span><br><span class="line">            groupState.mGroup.grantRuntimePermissions(doNotAskAgain);<span class="comment">//权限组内部的权限分配</span></span><br><span class="line">            groupState.mState = GroupState.STATE_ALLOWED;<span class="comment">//重置权限组的状态</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            groupState.mGroup.revokeRuntimePermissions(doNotAskAgain);</span><br><span class="line">            groupState.mState = GroupState.STATE_DENIED;</span><br><span class="line">        &#125;</span><br><span class="line">        updateGrantResults(groupState.mGroup);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//下一个组权限的授权</span></span><br><span class="line">    <span class="keyword">if</span> (!showNextPermissionGroupGrantRequest()) &#123;</span><br><span class="line">        setResultAndFinish();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>onPermissionGrantResult的三个参数分别是name代表了权限组的名字，granted表示是否进行权限分配，doNotAskAgain代表是否询问权限。内部的mRequestGrantPermissionGroups是一个LinkedHashMap&lt;String, GroupState&gt;，它的key是权限组名，值为GroupState，它代表了待授权的权限组Map。需要注意的是权限和权限组的概念是不同的，一个权限所属一个权限组，要给权限组可以对应多个权限。而我们传递给GrantPermissionsActivity的是权限数组(注意并不是权限组)，在GrantPermissionsActivity创建的时候，会将我们请求的权限分别匹配到其对应的权限组中，这会重新计算权限组的状态。这个方法对name对应的权限组进行授权或者拒绝，然后处理下一个权限组。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//packages/apps/PackageInstaller/src/com/android/packageinstaller/permission/ui/GrantPermissionsActivity.java</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">GrantPermissionsActivity</span> <span class="keyword">extends</span> <span class="title">OverlayTouchActivity</span></span></span><br><span class="line"><span class="class">        <span class="keyword">implements</span> <span class="title">GrantPermissionsViewHandler</span>.<span class="title">ResultListener</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> String[] mRequestedPermissions;<span class="comment">//请求的权限数组</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span>[] mGrantResults;<span class="comment">//权限分配的结果数组</span></span><br><span class="line">    <span class="comment">//请求的权限数组对应的权限组Map</span></span><br><span class="line">    <span class="keyword">private</span> LinkedHashMap&lt;String, GroupState&gt; mRequestGrantPermissionGroups = <span class="keyword">new</span> LinkedHashMap&lt;&gt;();</span><br><span class="line">    ...</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onCreate</span><span class="params">(Bundle icicle)</span> </span>&#123;</span><br><span class="line">        ...</span><br><span class="line">        <span class="comment">//加载应用权限组</span></span><br><span class="line">        mAppPermissions = <span class="keyword">new</span> AppPermissions(<span class="keyword">this</span>, callingPackageInfo, <span class="keyword">null</span>, <span class="keyword">false</span>,</span><br><span class="line">            <span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                    setResultAndFinish();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line">        <span class="comment">//遍历权限组</span></span><br><span class="line">        <span class="keyword">for</span> (AppPermissionGroup group : mAppPermissions.getPermissionGroups()) &#123;</span><br><span class="line">            <span class="keyword">boolean</span> groupHasRequestedPermission = <span class="keyword">false</span>;</span><br><span class="line">            <span class="keyword">for</span> (String requestedPermission : mRequestedPermissions) &#123;</span><br><span class="line">                <span class="comment">//如果请求的权限在该组内则标记groupHasRequestedPermission为true</span></span><br><span class="line">                <span class="keyword">if</span> (group.hasPermission(requestedPermission)) &#123;</span><br><span class="line">                    groupHasRequestedPermission = <span class="keyword">true</span>;</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (!groupHasRequestedPermission) &#123;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// We allow the user to choose only non-fixed permissions. A permission</span></span><br><span class="line">            <span class="comment">// is fixed either by device policy or the user denying with prejudice.</span></span><br><span class="line">            <span class="keyword">if</span> (!group.isUserFixed() &amp;&amp; !group.isPolicyFixed()) &#123;</span><br><span class="line">                <span class="keyword">switch</span> (permissionPolicy) &#123;</span><br><span class="line">                    <span class="keyword">case</span> DevicePolicyManager.PERMISSION_POLICY_AUTO_GRANT: &#123;</span><br><span class="line">                        <span class="keyword">if</span> (!group.areRuntimePermissionsGranted()) &#123;</span><br><span class="line">                            group.grantRuntimePermissions(<span class="keyword">false</span>);</span><br><span class="line">                        &#125;</span><br><span class="line">                        group.setPolicyFixed();</span><br><span class="line">                    &#125; <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">case</span> DevicePolicyManager.PERMISSION_POLICY_AUTO_DENY: &#123;</span><br><span class="line">                        <span class="keyword">if</span> (group.areRuntimePermissionsGranted()) &#123;</span><br><span class="line">                            group.revokeRuntimePermissions(<span class="keyword">false</span>);</span><br><span class="line">                        &#125;</span><br><span class="line">                        group.setPolicyFixed();</span><br><span class="line">                    &#125; <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">default</span>: &#123;</span><br><span class="line">                        <span class="comment">//权限组是否已经分配了Runtime Permission,如果没有，则添加到mRequestGrantPermissionGroups中</span></span><br><span class="line">                        <span class="keyword">if</span> (!group.areRuntimePermissionsGranted()) &#123;</span><br><span class="line">                            mRequestGrantPermissionGroups.put(group.getName(),</span><br><span class="line">                                    <span class="keyword">new</span> GroupState(group));</span><br><span class="line">                        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                            group.grantRuntimePermissions(<span class="keyword">false</span>);</span><br><span class="line">                            updateGrantResults(group);</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125; <span class="keyword">break</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">// if the permission is fixed, ensure that we return the right request result</span></span><br><span class="line">                updateGrantResults(group);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        ...</span><br><span class="line">        <span class="keyword">if</span> (!showNextPermissionGroupGrantRequest()) &#123;</span><br><span class="line">            setResultAndFinish();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在GrantPermissionsActivity的onCreate方法中，根据请求的权限计算所属权限组的状态，首先创建AppPermissions对象，这时会去加载应用的权限组。同时遍历用于请求的权限数组并找到其对应的权限组，同时判断该权限组是否已经分配了动态权限，如果未授权则添加到待授权的权限组Map中。到这里我们还未看到真正的授权过程，在前面onPermissionGrantResult方法中，授权是通过GroupState中的成员mGroup的grantRuntimePermissions方法进一步进行权限分配的。而GroupState的定义如下</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">GroupState</span> </span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> STATE_UNKNOWN = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> STATE_ALLOWED = <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> STATE_DENIED = <span class="number">2</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> AppPermissionGroup mGroup;</span><br><span class="line">    <span class="keyword">int</span> mState = STATE_UNKNOWN;</span><br><span class="line"></span><br><span class="line">    GroupState(AppPermissionGroup group) &#123;</span><br><span class="line">        mGroup = group;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>GroupState有三个状态STATE_UNKNOWN，STATE_ALLOWED，STATE_DENIED，它内部的mGroup实际上是个AppPermissionGroup，这些AppPermissionGroup是在AppPermissions加载的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//packages/apps/PackageInstaller/src/com/android/packageinstaller/permission/model/AppPermissionGroup.java</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">grantRuntimePermissions</span><span class="params">(<span class="keyword">boolean</span> fixedByTheUser)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> isSharedUser = mPackageInfo.sharedUserId != <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> uid = mPackageInfo.applicationInfo.uid;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// We toggle permissions only to apps that support runtime</span></span><br><span class="line">    <span class="comment">// permissions, otherwise we toggle the app op corresponding</span></span><br><span class="line">    <span class="comment">// to the permission if the permission is granted to the app.</span></span><br><span class="line">    <span class="comment">//遍历权限组对应的权限</span></span><br><span class="line">    <span class="keyword">for</span> (Permission permission : mPermissions.values()) &#123;</span><br><span class="line">        <span class="keyword">if</span> (mAppSupportsRuntimePermissions) &#123;<span class="comment">//支持动态权限分配</span></span><br><span class="line">            <span class="comment">// Do not touch permissions fixed by the system.</span></span><br><span class="line">            <span class="keyword">if</span> (permission.isSystemFixed()) &#123;<span class="comment">//系统权限则返回</span></span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Ensure the permission app op enabled before the permission grant.</span></span><br><span class="line">            <span class="comment">//打开permssion可以被grant的选项</span></span><br><span class="line">            <span class="keyword">if</span> (permission.hasAppOp() &amp;&amp; !permission.isAppOpAllowed()) &#123;</span><br><span class="line">                permission.setAppOpAllowed(<span class="keyword">true</span>);</span><br><span class="line">                mAppOps.setUidMode(permission.getAppOp(), uid, AppOpsManager.MODE_ALLOWED);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Grant the permission if needed.</span></span><br><span class="line">            <span class="comment">//进行动态分配，通过PMS完成</span></span><br><span class="line">            <span class="keyword">if</span> (!permission.isGranted()) &#123;</span><br><span class="line">                permission.setGranted(<span class="keyword">true</span>);</span><br><span class="line">                mPackageManager.grantRuntimePermission(mPackageInfo.packageName,</span><br><span class="line">                        permission.getName(), mUserHandle);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Update the permission flags.</span></span><br><span class="line">            <span class="keyword">if</span> (!fixedByTheUser) &#123;</span><br><span class="line">                <span class="comment">// Now the apps can ask for the permission as the user</span></span><br><span class="line">                <span class="comment">// no longer has it fixed in a denied state.</span></span><br><span class="line">                <span class="keyword">if</span> (permission.isUserFixed() || permission.isUserSet()) &#123;</span><br><span class="line">                    permission.setUserFixed(<span class="keyword">false</span>);</span><br><span class="line">                    permission.setUserSet(<span class="keyword">true</span>);</span><br><span class="line">                    mPackageManager.updatePermissionFlags(permission.getName(),</span><br><span class="line">                            mPackageInfo.packageName,</span><br><span class="line">                            PackageManager.FLAG_PERMISSION_USER_FIXED</span><br><span class="line">                                    | PackageManager.FLAG_PERMISSION_USER_SET,</span><br><span class="line">                            <span class="number">0</span>, mUserHandle);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;<span class="comment">//Adnroid M以下的版本权限分配</span></span><br><span class="line">            ....    </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>权限的分配最终是通过PMS的grantRuntimePermission方法来完成的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//frameworks/base/services/core/java/com/android/server/pm/PackageManagerService.java</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">grantRuntimePermission</span><span class="params">(String packageName, String name, <span class="keyword">final</span> <span class="keyword">int</span> userId)</span> </span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    mContext.enforceCallingOrSelfPermission(</span><br><span class="line">            android.Manifest.permission.GRANT_RUNTIME_PERMISSIONS,</span><br><span class="line">            <span class="string">"grantRuntimePermission"</span>);</span><br><span class="line">    </span><br><span class="line">    enforceCrossUserPermission(Binder.getCallingUid(), userId, <span class="keyword">true</span>, <span class="keyword">false</span>,</span><br><span class="line">            <span class="string">"grantRuntimePermission"</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> uid;</span><br><span class="line">    <span class="keyword">final</span> SettingBase sb;</span><br><span class="line">        </span><br><span class="line">    <span class="keyword">synchronized</span> (mPackages) &#123;</span><br><span class="line">        <span class="comment">//取到Package对象</span></span><br><span class="line">        <span class="keyword">final</span> PackageParser.Package pkg = mPackages.get(packageName);</span><br><span class="line">        <span class="keyword">if</span> (pkg == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"Unknown package: "</span> + packageName);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//取到全局设置中的权限信息    </span></span><br><span class="line">        <span class="keyword">final</span> BasePermission bp = mSettings.mPermissions.get(name);</span><br><span class="line">        <span class="keyword">if</span> (bp == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"Unknown permission: "</span> + name);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        enforceDeclaredAsUsedAndRuntimeOrDevelopmentPermission(pkg, bp);</span><br><span class="line"></span><br><span class="line">        uid = UserHandle.getUid(userId, pkg.applicationInfo.uid);</span><br><span class="line">        sb = (SettingBase) pkg.mExtras;<span class="comment">//从pkg中取到应用的设置信息SettingBase</span></span><br><span class="line">        <span class="keyword">if</span> (sb == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"Unknown package: "</span> + packageName);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//取到权限状态    </span></span><br><span class="line">        <span class="keyword">final</span> PermissionsState permissionsState = sb.getPermissionsState();</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">int</span> flags = permissionsState.getPermissionFlags(name, userId);</span><br><span class="line">        <span class="keyword">if</span> ((flags &amp; PackageManager.FLAG_PERMISSION_SYSTEM_FIXED) != <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> SecurityException(<span class="string">"Cannot grant system fixed permission: "</span></span><br><span class="line">                    + name + <span class="string">" for package: "</span> + packageName);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (bp.isDevelopment()) &#123;</span><br><span class="line">            <span class="comment">// Development permissions must be handled specially, since they are not</span></span><br><span class="line">            <span class="comment">// normal runtime permissions.  For now they apply to all users.</span></span><br><span class="line">            <span class="keyword">if</span> (permissionsState.grantInstallPermission(bp) !=</span><br><span class="line">                    PermissionsState.PERMISSION_OPERATION_FAILURE) &#123;</span><br><span class="line">                scheduleWriteSettingsLocked();</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//通过PermissionsState进行动态权限的分配</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">int</span> result = permissionsState.grantRuntimePermission(bp, userId);</span><br><span class="line">        ....</span><br><span class="line">    &#125;</span><br><span class="line">    .....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在PMS的grantRuntimePermission方法中首先根据包名取到应用安装时的Package对象，这个Package对象中包含了应用的一些设置信息，通过这个设置信息可以取到当前应用的PermissionState，它维护了当前应用的权限授予情况。同时根据参数name,也就是权限名获取全新的配置信息BasePermission对象，它时从mSettings中取到的，mSettings是PMS的全局设置，它在PMS启动的时候初始化，里面包含了平台支持的所有权限。最后权限的分配进一步通过PermissionState来完成</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//frameworks/base/services/core/java/com/android/server/pm/PermissionsState.java</span></span><br><span class="line"><span class="comment">//动态权限的分配</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">grantRuntimePermission</span><span class="params">(BasePermission permission, <span class="keyword">int</span> userId)</span> </span>&#123;</span><br><span class="line">    enforceValidUserId(userId);</span><br><span class="line">    <span class="keyword">if</span> (userId == UserHandle.USER_ALL) &#123;</span><br><span class="line">        <span class="keyword">return</span> PERMISSION_OPERATION_FAILURE;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> grantPermission(permission, userId);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">grantPermission</span><span class="params">(BasePermission permission, <span class="keyword">int</span> userId)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (hasPermission(permission.name, userId)) &#123;</span><br><span class="line">        <span class="keyword">return</span> PERMISSION_OPERATION_FAILURE;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//计算用户组id</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> hasGids = !ArrayUtils.isEmpty(permission.computeGids(userId));</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span>[] oldGids = hasGids ? computeGids(userId) : NO_GIDS;</span><br><span class="line">    <span class="comment">//将权限包装成PermissionData添加到应用的权限列表中</span></span><br><span class="line">    PermissionData permissionData = ensurePermissionData(permission);</span><br><span class="line">    <span class="comment">//授予权限，修改PermissionState的mGranted属性</span></span><br><span class="line">    <span class="keyword">if</span> (!permissionData.grant(userId)) &#123;</span><br><span class="line">        <span class="keyword">return</span> PERMISSION_OPERATION_FAILURE;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (hasGids) &#123;</span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">int</span>[] newGids = computeGids(userId);<span class="comment">//重新计算用户的权限组id</span></span><br><span class="line">        <span class="comment">//权限组id是否发生变化</span></span><br><span class="line">        <span class="keyword">if</span> (oldGids.length != newGids.length) &#123;</span><br><span class="line">            <span class="keyword">return</span> PERMISSION_OPERATION_SUCCESS_GIDS_CHANGED;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> PERMISSION_OPERATION_SUCCESS;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在grantPermission方法中首先会计算当前用户进程当前拥有的组id，然后再通过ensurePermissionData将权限添加到应用的PermissionData列表中，这里返回一个PermissionData，通过该对象的grant方法进行最终的分配，事实上它其实是修改内部PermissionState成员的mGranted状态为true。最后会对用户的组id进行重新计算，如果发生变化则返回PERMISSION_OPERATION_SUCCESS_GIDS_CHANGED，否则返回PERMISSION_OPERATION_SUCCESS</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//保证权限被添加到用户列表中</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> PermissionData <span class="title">ensurePermissionData</span><span class="params">(BasePermission permission)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mPermissions == <span class="keyword">null</span>) &#123;</span><br><span class="line">        mPermissions = <span class="keyword">new</span> ArrayMap&lt;&gt;();</span><br><span class="line">    &#125;</span><br><span class="line">    PermissionData permissionData = mPermissions.get(permission.name);</span><br><span class="line">    <span class="keyword">if</span> (permissionData == <span class="keyword">null</span>) &#123;</span><br><span class="line">        permissionData = <span class="keyword">new</span> PermissionData(permission);</span><br><span class="line">        mPermissions.put(permission.name, permissionData);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> permissionData;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//根据用户权限列表计算用户的gid</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">int</span>[] computeGids(<span class="keyword">int</span> userId) &#123;</span><br><span class="line">    enforceValidUserId(userId);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span>[] gids = mGlobalGids;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (mPermissions != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">int</span> permissionCount = mPermissions.size();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; permissionCount; i++) &#123;</span><br><span class="line">            String permission = mPermissions.keyAt(i);</span><br><span class="line">            <span class="keyword">if</span> (!hasPermission(permission, userId)) &#123;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            PermissionData permissionData = mPermissions.valueAt(i);</span><br><span class="line">            <span class="comment">//取到权限对应的组id数组，可见权限可以通过多个gid描述</span></span><br><span class="line">            <span class="keyword">final</span> <span class="keyword">int</span>[] permGids = permissionData.computeGids(userId);</span><br><span class="line">            <span class="keyword">if</span> (permGids != NO_GIDS) &#123;</span><br><span class="line">                <span class="comment">//将权限对应的组id添加到用户的组id数组中</span></span><br><span class="line">                gids = appendInts(gids, permGids);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> gids;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>ensurePermissionData方法确保将权限对应的PermissionData添加到PermissonsState的权限列表中，后续通过computeGids计算用户userId对应的组id，并将其添加到用户的组id数组mGlobalGids中。其中内置权限的gid映射是定义在/etc/permission/platform.xml</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">permissions</span>&gt;</span></span><br><span class="line">    ···</span><br><span class="line">    <span class="tag">&lt;<span class="name">permission</span> <span class="attr">name</span>=<span class="string">"android.permission.READ_EXTERNAL_STORAGE"</span> &gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">group</span> <span class="attr">gid</span>=<span class="string">"sdcard_r"</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">permission</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="name">permission</span> <span class="attr">name</span>=<span class="string">"android.permission.WRITE_EXTERNAL_STORAGE"</span> &gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">group</span> <span class="attr">gid</span>=<span class="string">"sdcard_r"</span> /&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">group</span> <span class="attr">gid</span>=<span class="string">"sdcard_rw"</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">permission</span>&gt;</span></span><br><span class="line">    </span><br><span class="line">    <span class="tag">&lt;<span class="name">permission</span> <span class="attr">name</span>=<span class="string">"android.permission.INTERNET"</span> &gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">group</span> <span class="attr">gid</span>=<span class="string">"inet"</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">permission</span>&gt;</span></span><br><span class="line">    ···</span><br><span class="line"><span class="tag">&lt;/<span class="name">permissions</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>至此，我们明白了权限的本质实际上就是一组gid，这组gid对应的是一些整型，这些映射关系存放在system/core/include/private/android_filesystem_config.h中，其中的定义如下</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> AID_NET_BT_ADMIN  3001  <span class="comment">/* bluetooth: create any socket */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> AID_NET_BT        3002  <span class="comment">/* bluetooth: create sco, rfcomm or l2cap sockets */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> AID_INET          3003  <span class="comment">/* can create AF_INET and AF_INET6 sockets */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> AID_SDCARD_RW     1015  <span class="comment">/* external storage write access */</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">android_id_info</span> <span class="title">android_ids</span>[] = &#123;</span></span><br><span class="line">    ...</span><br><span class="line">    &#123; <span class="string">"bluetooth"</span>,     AID_BLUETOOTH, &#125;,</span><br><span class="line">    &#123; <span class="string">"sdcard_rw"</span>,     AID_SDCARD_RW, &#125;,</span><br><span class="line">    &#123; <span class="string">"net_bt_admin"</span>,  AID_NET_BT_ADMIN, &#125;,</span><br><span class="line">    &#123; <span class="string">"net_bt"</span>,        AID_NET_BT, &#125;,</span><br><span class="line">    &#123; <span class="string">"inet"</span>,          AID_INET, &#125;,</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过将权限映射成一组gid，然后作为补充gid赋值给用户进程，也就是权限分配的本质。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//PermisssionsState.PermissionData</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">grant</span><span class="params">(<span class="keyword">int</span> userId)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!isCompatibleUserId(userId)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (isGranted(userId)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    PermissionState userState = mUserStates.get(userId);</span><br><span class="line">    <span class="keyword">if</span> (userState == <span class="keyword">null</span>) &#123;</span><br><span class="line">        userState = <span class="keyword">new</span> PermissionState(mPerm.name);</span><br><span class="line">        mUserStates.put(userId, userState);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//分配权限置true</span></span><br><span class="line">    userState.mGranted = <span class="keyword">true</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过PermissionData的grant方法，为对应的用户创建PermissionState，并将mGranted置为true表示分配了该权限给<br>
+该用户。</p>
+<p>当然权限分配完成后，下次不需要再次分配，当我们重新启动手机后，并需要再次对权限进行分配，这是因为PMS为所有的package记录了权限分配的情况，在Android6.0之前，package所有的权限信息都是存放在data/system/packages.xml配置文件中,在应用中启动时候读取该配置就可以直到权限分配了哪些权限。但在Android6.0后，运行时权限放在了data/system/users/0/runtime-permissions.xml中，而普通权限保持不变依然存放在packages.xml中，而且默认granted就是true。那么在分配完成权限后需要将权限的分配信息持久化到该文件中。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">//packages.xml</span><br><span class="line"><span class="tag">&lt;<span class="name">package</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">name</span>=<span class="string">"com.feelschaotic.demo"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">codePath</span>=<span class="string">"/data/app/com.feelschaotic.demo-Gi5ksdF6mUDLakfOugCcwQ=="</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">nativeLibraryPath</span>=<span class="string">"/data/app/com.feelschaotic.demo-Gi5ksdF6mUDLakfOugCcwQ==/lib"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">primaryCpuAbi</span>=<span class="string">"x86"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">publicFlags</span>=<span class="string">"945307462"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">privateFlags</span>=<span class="string">"0"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">ft</span>=<span class="string">"16348dc3870"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">it</span>=<span class="string">"16343f1d6aa"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">ut</span>=<span class="string">"16348dc4c4d"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">version</span>=<span class="string">"8220"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">userId</span>=<span class="string">"10102"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">sigs</span> <span class="attr">count</span>=<span class="string">"1"</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">cert</span> <span class="attr">index</span>=<span class="string">"20"</span> <span class="attr">key</span>=<span class="string">"..."</span> /&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">sigs</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">perms</span>&gt;</span></span><br><span class="line">          <span class="comment">&lt;!-- 此处普通权限的 granted 全都默认是 true，且不可改变 granted 值--&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">item</span> <span class="attr">name</span>=<span class="string">"android.permission.CHANGE_NETWORK_STATE"</span> <span class="attr">granted</span>=<span class="string">"true"</span> <span class="attr">flags</span>=<span class="string">"0"</span> /&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">item</span> <span class="attr">name</span>=<span class="string">"android.permission.INTERNET"</span> <span class="attr">granted</span>=<span class="string">"true"</span> <span class="attr">flags</span>=<span class="string">"0"</span> /&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">item</span> <span class="attr">name</span>=<span class="string">"android.permission.CHANGE_WIFI_STATE"</span> <span class="attr">granted</span>=<span class="string">"true"</span> <span class="attr">flags</span>=<span class="string">"0"</span> /&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">item</span> <span class="attr">name</span>=<span class="string">"android.permission.ACCESS_NETWORK_STATE"</span> <span class="attr">granted</span>=<span class="string">"true"</span> <span class="attr">flags</span>=<span class="string">"0"</span> /&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">perms</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">proper-signing-keyset</span> <span class="attr">identifier</span>=<span class="string">"48"</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">package</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;pkg name=<span class="string">"com.feelschaotic.demo"</span>&gt;</span><br><span class="line">   &lt;!-- 该demo我们故意拒绝了定位权限，可以看到：ACCESS_FINE_LOCATION 和 ACCESS_COARSE_LOCATION 的 granted 为 <span class="keyword">false</span> --&gt;</span><br><span class="line">    &lt;item name=<span class="string">"android.permission.ACCESS_FINE_LOCATION"</span> granted=<span class="string">"false"</span> flags=<span class="string">"1"</span> /&gt;</span><br><span class="line">    &lt;item name=<span class="string">"android.permission.READ_EXTERNAL_STORAGE"</span> granted=<span class="string">"true"</span> flags=<span class="string">"0"</span> /&gt;</span><br><span class="line">    &lt;item name=<span class="string">"android.permission.ACCESS_COARSE_LOCATION"</span> granted=<span class="string">"false"</span> flags=<span class="string">"1"</span> /&gt;</span><br><span class="line">    &lt;item name=<span class="string">"android.permission.READ_PHONE_STATE"</span> granted=<span class="string">"true"</span> flags=<span class="string">"0"</span> /&gt;</span><br><span class="line">    &lt;item name=<span class="string">"android.permission.WRITE_EXTERNAL_STORAGE"</span> granted=<span class="string">"true"</span> flags=<span class="string">"0"</span> /&gt;</span><br><span class="line">    ...</span><br><span class="line">&lt;/pkg&gt;</span><br></pre></td></tr></table></figure>
+<p>在PMS的grantRuntimePermission分配完运行时权限后，最后会调用writeRuntimePermissionsForUserLPr将权限信息持久化到配置文件runtime-permissions.xml中,我们看看这个过程</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">writeRuntimePermissionsForUserLPr</span><span class="params">(<span class="keyword">int</span> userId, <span class="keyword">boolean</span> sync)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (sync) &#123;</span><br><span class="line">        mRuntimePermissionsPersistence.writePermissionsForUserSyncLPr(userId);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        mRuntimePermissionsPersistence.writePermissionsForUserAsyncLPr(userId);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>无论时同步方式还是异步方式的持久化，最后都会调用下面的方法进行</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//写入权限到配置文件</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">writePermissionsSync</span><span class="params">(<span class="keyword">int</span> userId)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//要写入的文件/data/system/users/0/runtime-permissions.xml</span></span><br><span class="line">    AtomicFile destination = <span class="keyword">new</span> AtomicFile(getUserRuntimePermissionsFile(userId));</span><br><span class="line"></span><br><span class="line">    ArrayMap&lt;String, List&lt;PermissionState&gt;&gt; permissionsForPackage = <span class="keyword">new</span> ArrayMap&lt;&gt;();</span><br><span class="line">    ArrayMap&lt;String, List&lt;PermissionState&gt;&gt; permissionsForSharedUser = <span class="keyword">new</span> ArrayMap&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">synchronized</span> (mLock) &#123;</span><br><span class="line">        mWriteScheduled.delete(userId);</span><br><span class="line">        <span class="comment">//对所有的package进行处理</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">int</span> packageCount = mPackages.size();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; packageCount; i++) &#123;</span><br><span class="line">            String packageName = mPackages.keyAt(i);</span><br><span class="line">            <span class="comment">//取到PackageSetting</span></span><br><span class="line">            PackageSetting packageSetting = mPackages.valueAt(i);</span><br><span class="line">            <span class="keyword">if</span> (packageSetting.sharedUser == <span class="keyword">null</span>) &#123;<span class="comment">//没有sharedUser的情况</span></span><br><span class="line">                <span class="comment">//取到PermissionsState，这个对象描述了包的权限信息</span></span><br><span class="line">                PermissionsState permissionsState = packageSetting.getPermissionsState();</span><br><span class="line">                List&lt;PermissionState&gt; permissionsStates = permissionsState</span><br><span class="line">                        .getRuntimePermissionStates(userId);<span class="comment">//获取全新分配列表</span></span><br><span class="line">                <span class="keyword">if</span> (!permissionsStates.isEmpty()) &#123;</span><br><span class="line">                    <span class="comment">//存放在permissionsForPackage这个Map中，以包名为键</span></span><br><span class="line">                    permissionsForPackage.put(packageName, permissionsStates);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//有shareUser的情况</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">int</span> sharedUserCount = mSharedUsers.size();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; sharedUserCount; i++) &#123;</span><br><span class="line">            String sharedUserName = mSharedUsers.keyAt(i);</span><br><span class="line">            SharedUserSetting sharedUser = mSharedUsers.valueAt(i);</span><br><span class="line">            PermissionsState permissionsState = sharedUser.getPermissionsState();</span><br><span class="line">            List&lt;PermissionState&gt; permissionsStates = permissionsState</span><br><span class="line">                    .getRuntimePermissionStates(userId);</span><br><span class="line">            <span class="keyword">if</span> (!permissionsStates.isEmpty()) &#123;</span><br><span class="line">                permissionsForSharedUser.put(sharedUserName, permissionsStates);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//写配置</span></span><br><span class="line">    FileOutputStream out = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">//取到输出流</span></span><br><span class="line">        out = destination.startWrite();</span><br><span class="line"></span><br><span class="line">        XmlSerializer serializer = Xml.newSerializer();</span><br><span class="line">        serializer.setOutput(out, StandardCharsets.UTF_8.name());</span><br><span class="line">        serializer.setFeature(</span><br><span class="line">                <span class="string">"http://xmlpull.org/v1/doc/features.html#indent-output"</span>, <span class="keyword">true</span>);</span><br><span class="line">        serializer.startDocument(<span class="keyword">null</span>, <span class="keyword">true</span>);</span><br><span class="line">        serializer.startTag(<span class="keyword">null</span>, TAG_RUNTIME_PERMISSIONS);</span><br><span class="line"></span><br><span class="line">        String fingerprint = mFingerprints.get(userId);</span><br><span class="line">        <span class="keyword">if</span> (fingerprint != <span class="keyword">null</span>) &#123;</span><br><span class="line">            serializer.attribute(<span class="keyword">null</span>, ATTR_FINGERPRINT, fingerprint);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//先写当前package的permission</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">int</span> packageCount = permissionsForPackage.size();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; packageCount; i++) &#123;</span><br><span class="line">            String packageName = permissionsForPackage.keyAt(i);</span><br><span class="line">            List&lt;PermissionState&gt; permissionStates = permissionsForPackage.valueAt(i);</span><br><span class="line">            serializer.startTag(<span class="keyword">null</span>, TAG_PACKAGE);<span class="comment">//package</span></span><br><span class="line">            serializer.attribute(<span class="keyword">null</span>, ATTR_NAME, packageName);</span><br><span class="line">            writePermissions(serializer, permissionStates);</span><br><span class="line">            serializer.endTag(<span class="keyword">null</span>, TAG_PACKAGE);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//写其shareUser进程的permission</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">int</span> sharedUserCount = permissionsForSharedUser.size();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; sharedUserCount; i++) &#123;</span><br><span class="line">            String packageName = permissionsForSharedUser.keyAt(i);</span><br><span class="line">            List&lt;PermissionState&gt; permissionStates = permissionsForSharedUser.valueAt(i);</span><br><span class="line">            serializer.startTag(<span class="keyword">null</span>, TAG_SHARED_USER);</span><br><span class="line">            serializer.attribute(<span class="keyword">null</span>, ATTR_NAME, packageName);</span><br><span class="line">            writePermissions(serializer, permissionStates);</span><br><span class="line">            serializer.endTag(<span class="keyword">null</span>, TAG_SHARED_USER);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        serializer.endTag(<span class="keyword">null</span>, TAG_RUNTIME_PERMISSIONS);</span><br><span class="line">        serializer.endDocument();</span><br><span class="line">        destination.finishWrite(out);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (Build.FINGERPRINT.equals(fingerprint)) &#123;</span><br><span class="line">            mDefaultPermissionsGranted.put(userId, <span class="keyword">true</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    <span class="comment">// Any error while writing is fatal.</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">        Slog.wtf(PackageManagerService.TAG,</span><br><span class="line">                <span class="string">"Failed to write settings, restoring backup"</span>, t);</span><br><span class="line">        destination.failWrite(out);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        IoUtils.closeQuietly(out);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>writePermissionsSync写配置的过程很简单，先打开配置文件/data/system/users/0/runtime-permissions.xml，随后对PMS中的每个package和sharedUser分别将其对应的权限分配列表按照包名和shareUserName存放在permissionsForPackage和permissionsForSharedUser中，随后打开输出流分别将其对应的运行时权限分配情况写入文件。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">writePermissions</span><span class="params">(XmlSerializer serializer,</span></span></span><br><span class="line"><span class="function"><span class="params">        List&lt;PermissionState&gt; permissionStates)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (PermissionState permissionState : permissionStates) &#123;</span><br><span class="line">        serializer.startTag(<span class="keyword">null</span>, TAG_ITEM);</span><br><span class="line">        serializer.attribute(<span class="keyword">null</span>, ATTR_NAME,permissionState.getName());</span><br><span class="line">        serializer.attribute(<span class="keyword">null</span>, ATTR_GRANTED,</span><br><span class="line">                String.valueOf(permissionState.isGranted()));</span><br><span class="line">        serializer.attribute(<span class="keyword">null</span>, ATTR_FLAGS,</span><br><span class="line">                Integer.toHexString(permissionState.getFlags()));</span><br><span class="line">        serializer.endTag(<span class="keyword">null</span>, TAG_ITEM);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>writePermissions负责写tag 为package下的一条权限分配信息，如</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">item</span> <span class="attr">name</span>=<span class="string">"android.permission.WRITE_EXTERNAL_STORAGE"</span> <span class="attr">granted</span>=<span class="string">"true"</span> <span class="attr">flags</span>=<span class="string">"0"</span> /&gt;</span></span><br></pre></td></tr></table></figure>
+<h4 id="权限的检测"><a class="markdownIt-Anchor" href="#权限的检测"></a> 权限的检测</h4>
+<p>权限检测是通过Context的checkSelfPermission方法来进行的。我们看下它的实现</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">checkSelfPermission</span><span class="params">(String permission)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (permission == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"permission is null"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> checkPermission(permission, Process.myPid(), Process.myUid());</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">checkPermission</span><span class="params">(String permission, <span class="keyword">int</span> pid, <span class="keyword">int</span> uid)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (permission == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"permission is null"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> ActivityManagerNative.getDefault().checkPermission(</span><br><span class="line">                permission, pid, uid);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">        <span class="keyword">return</span> PackageManager.PERMISSION_DENIED;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>最终还是通过AMS的checkPermission来进行权限检查。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//frameworks/base/core/java/android/app/ActivityManager.java</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">checkPermission</span><span class="params">(String permission, <span class="keyword">int</span> pid, <span class="keyword">int</span> uid)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (permission == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> PackageManager.PERMISSION_DENIED;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> checkComponentPermission(permission, pid, uid, -<span class="number">1</span>, <span class="keyword">true</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">checkComponentPermission</span><span class="params">(String permission, <span class="keyword">int</span> pid, <span class="keyword">int</span> uid,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">int</span> owningUid, <span class="keyword">boolean</span> exported)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (pid == MY_PID) &#123;</span><br><span class="line">        <span class="keyword">return</span> PackageManager.PERMISSION_GRANTED;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ActivityManager.checkComponentPermission(permission, uid,</span><br><span class="line">            owningUid, exported);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/** <span class="doctag">@hide</span> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">checkComponentPermission</span><span class="params">(String permission, <span class="keyword">int</span> uid,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">int</span> owningUid, <span class="keyword">boolean</span> exported)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// Root, system server get to do everything.</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> appId = UserHandle.getAppId(uid);</span><br><span class="line">    <span class="keyword">if</span> (appId == Process.ROOT_UID || appId == Process.SYSTEM_UID) &#123;</span><br><span class="line">        <span class="keyword">return</span> PackageManager.PERMISSION_GRANTED;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Isolated processes don't get any permissions.</span></span><br><span class="line">    <span class="keyword">if</span> (UserHandle.isIsolated(uid)) &#123;</span><br><span class="line">        <span class="keyword">return</span> PackageManager.PERMISSION_DENIED;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// If there is a uid that owns whatever is being accessed, it has</span></span><br><span class="line">    <span class="comment">// blanket access to it regardless of the permissions it requires.</span></span><br><span class="line">    <span class="keyword">if</span> (owningUid &gt;= <span class="number">0</span> &amp;&amp; UserHandle.isSameApp(uid, owningUid)) &#123;</span><br><span class="line">        <span class="keyword">return</span> PackageManager.PERMISSION_GRANTED;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// If the target is not exported, then nobody else can get to it.</span></span><br><span class="line">    <span class="keyword">if</span> (!exported) &#123;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">        RuntimeException here = new RuntimeException("here");</span></span><br><span class="line"><span class="comment">        here.fillInStackTrace();</span></span><br><span class="line"><span class="comment">        Slog.w(TAG, "Permission denied: checkComponentPermission() owningUid=" + owningUid,</span></span><br><span class="line"><span class="comment">                here);</span></span><br><span class="line"><span class="comment">        */</span></span><br><span class="line">        <span class="keyword">return</span> PackageManager.PERMISSION_DENIED;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (permission == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> PackageManager.PERMISSION_GRANTED;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//通过PMS进行check</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> AppGlobals.getPackageManager()</span><br><span class="line">                .checkUidPermission(permission, uid);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">        <span class="comment">// Should never happen, but if it does... deny!</span></span><br><span class="line">        Slog.e(TAG, <span class="string">"PackageManager is dead?!?"</span>, e);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> PackageManager.PERMISSION_DENIED;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在AMS中的一系列调用中，最终的权限还是通过PMS的checkUidPermission来进行check的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//PMS</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">checkUidPermission</span><span class="params">(String permName, <span class="keyword">int</span> uid)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> userId = UserHandle.getUserId(uid);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!sUserManager.exists(userId)) &#123;</span><br><span class="line">        <span class="keyword">return</span> PackageManager.PERMISSION_DENIED;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">synchronized</span> (mPackages) &#123;</span><br><span class="line">        Object obj = mSettings.getUserIdLPr(UserHandle.getAppId(uid));</span><br><span class="line">        <span class="keyword">if</span> (obj != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">final</span> SettingBase ps = (SettingBase) obj;</span><br><span class="line">            <span class="keyword">final</span> PermissionsState permissionsState = ps.getPermissionsState();</span><br><span class="line">            <span class="comment">//通过PermissionsState来检查</span></span><br><span class="line">            <span class="keyword">if</span> (permissionsState.hasPermission(permName, userId)) &#123;</span><br><span class="line">                <span class="keyword">return</span> PackageManager.PERMISSION_GRANTED;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//定位权限的检测特殊处理</span></span><br><span class="line">            <span class="comment">// Special case: ACCESS_FINE_LOCATION permission includes ACCESS_COARSE_LOCATION</span></span><br><span class="line">            <span class="keyword">if</span> (Manifest.permission.ACCESS_COARSE_LOCATION.equals(permName) &amp;&amp; permissionsState</span><br><span class="line">                    .hasPermission(Manifest.permission.ACCESS_FINE_LOCATION, userId)) &#123;</span><br><span class="line">                <span class="keyword">return</span> PackageManager.PERMISSION_GRANTED;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            ArraySet&lt;String&gt; perms = mSystemPermissions.get(uid);</span><br><span class="line">            <span class="keyword">if</span> (perms != <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="keyword">if</span> (perms.contains(permName)) &#123;</span><br><span class="line">                    <span class="keyword">return</span> PackageManager.PERMISSION_GRANTED;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (Manifest.permission.ACCESS_COARSE_LOCATION.equals(permName) &amp;&amp; perms</span><br><span class="line">                        .contains(Manifest.permission.ACCESS_FINE_LOCATION)) &#123;</span><br><span class="line">                    <span class="keyword">return</span> PackageManager.PERMISSION_GRANTED;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> PackageManager.PERMISSION_DENIED;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>checkUidPermission首先根据userId从PMS的配置对象中取到SettingBase,然后取到用户对应的PermissionsState，再通过permissionsState的hasPermission判断是否有该权限。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//检测权限</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">hasPermission</span><span class="params">(String name, <span class="keyword">int</span> userId)</span> </span>&#123;</span><br><span class="line">    enforceValidUserId(userId);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (mPermissions == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//取到权限对应的PermissionData</span></span><br><span class="line">    PermissionData permissionData = mPermissions.get(name);</span><br><span class="line">    <span class="comment">//通过isGranted来判断</span></span><br><span class="line">    <span class="keyword">return</span> permissionData != <span class="keyword">null</span> &amp;&amp; permissionData.isGranted(userId);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从PermissionsState的权限列表中取到PermissionData，通过PermissionData的PermissionState对象的mGranted成员就知道权限是否分配了。</p>
+<h3 id="总结"><a class="markdownIt-Anchor" href="#总结"></a> 总结</h3>
+<p>在Android6.0之前的版本中，应用在安装的时候会将manifest中request的权限(即通过<uses-permission>申请的权限)添加到Package对象的PackageSetting中，PMS为每个安装的app创建一个Package对象，这个是在安装过程中创建的，同时在安装过程中也会为每个app创建一个PackageSetting对象，并将其保存在Package对象的mExtra中，在PackageSetting内部保存了应用的签名信息和授予的权限列表，实际上PackageSetting本身就是继承自GrantedPermissions类，这个类从名字看就知道它负责已授权的permission。应用中授权的权限在安装完成后会将应用的信息(包括了权限，签名和应用的基本信息等)写入到pacakge.xml文件中，这样下次系统启动就可以通过读取该文件获取应用的授权信息。</uses-permission></p>
+<p>在Aandroid6.0之后，google为了防止应用滥用权限对权限的授予进行了收缩，将危险的权限授予过程交给用户来决定，为了适应这样的变化，必须要将安装权限和运行时权限进行区分处理，安装权限保持原有的逻辑不变，对于动态权限的分配必然要对PackageSetting进行一个大手术，在Android6.0中PackageSetting不再继承自GrantedPermissions，而是继承自于SettingBase，它的内部也比以前复杂了一些，简单来说它内部维护了一个PermissionsState，它负责管理应用的权限，因此它内部存放着应用的授权的权限列表(实际上是一个ArrayMap&lt;String, PermissionData&gt;)，以及权限组对应的gids，此时的权限不再是仅仅是一个String，而是一个PermissionData，而PermissionData内部持有PermissionState即permission的状态，可以看到最终我们还是通过改变PermissionData的PermissionState来达到动态授权的目的。另外授予的动态权限最终会保存在runtime-permission.xml中。</p>
+<h4 id="参考"><a class="markdownIt-Anchor" href="#参考"></a> 参考</h4>
+<p><a href="https://www.jianshu.com/p/a17c8bed79d9" target="_blank" rel="noopener">https://www.jianshu.com/p/a17c8bed79d9</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpayimg.png" alt="esli 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipayimg.png" alt="esli 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Android/" rel="tag"># Android</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/[object Object]/android-libray-leakcanary-src/" rel="next" title="LeakCanary内存泄漏检测机制原理">
+                <i class="fa fa-chevron-left"></i> LeakCanary内存泄漏检测机制原理
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/[object Object]/android-plugin-res/" rel="prev" title="插件化/热修复原理">
+                插件化/热修复原理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/uploads/avatar.png"
+                alt="esli" />
+            
+              <p class="site-author-name" itemprop="name">esli</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">61</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#权限分配"><span class="nav-number">1.</span> <span class="nav-text"> 权限分配</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#权限的检测"><span class="nav-number">2.</span> <span class="nav-text"> 权限的检测</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#总结"><span class="nav-number"></span> <span class="nav-text"> 总结</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#参考"><span class="nav-number">1.</span> <span class="nav-text"> 参考</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">esli</span>
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("jBNLE1XrpdNfIpNnvp02BNFi-gzGzoHsz", "1KETbc2T1LA8C2oPKVwpbzVm");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

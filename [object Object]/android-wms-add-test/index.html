@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Android," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="WindowManagerService创建窗口测试 通过WindowManagerService我们可以直接申请、渲染并注销自己的窗口，而不需要经过Activity，Dialog等系统组件，通过本测试，我们可以清楚WMS最基本的工作方式。以下代码基于Android4.4  创建一个SampleWindow类 1234567891011121314151617181920212223242526">
+<meta name="keywords" content="Android">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WindowManagerService添加窗口测试">
+<meta property="og:url" content="http://esligh.github.io/[object Object]/android-wms-add-test/index.html">
+<meta property="og:site_name" content="esli&#39;s Blog">
+<meta property="og:description" content="WindowManagerService创建窗口测试 通过WindowManagerService我们可以直接申请、渲染并注销自己的窗口，而不需要经过Activity，Dialog等系统组件，通过本测试，我们可以清楚WMS最基本的工作方式。以下代码基于Android4.4  创建一个SampleWindow类 1234567891011121314151617181920212223242526">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-03-16T08:02:14.399Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="WindowManagerService添加窗口测试">
+<meta name="twitter:description" content="WindowManagerService创建窗口测试 通过WindowManagerService我们可以直接申请、渲染并注销自己的窗口，而不需要经过Activity，Dialog等系统组件，通过本测试，我们可以清楚WMS最基本的工作方式。以下代码基于Android4.4  创建一个SampleWindow类 1234567891011121314151617181920212223242526">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://esligh.github.io/[object Object]/android-wms-add-test/"/>
+
+
+
+
+
+  <title>WindowManagerService添加窗口测试 | esli's Blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">esli's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">day day up</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://esligh.github.io/[object Object]/android-wms-add-test/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="esli">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="esli's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">WindowManagerService添加窗口测试</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-10-18T22:36:23+08:00">
+                2018-10-18
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AOSP/" itemprop="url" rel="index">
+                    <span itemprop="name">AOSP</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+             <span id="/[object Object]/android-wms-add-test/" class="leancloud_visitors" data-flag-title="WindowManagerService添加窗口测试">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="windowmanagerservice创建窗口测试"><a class="markdownIt-Anchor" href="#windowmanagerservice创建窗口测试"></a> WindowManagerService创建窗口测试</h3>
+<p>通过WindowManagerService我们可以直接申请、渲染并注销自己的窗口，而不需要经过Activity，Dialog等系统组件，通过本测试，我们可以清楚WMS最基本的工作方式。以下代码基于Android4.4</p>
+<h4 id="创建一个samplewindow类"><a class="markdownIt-Anchor" href="#创建一个samplewindow类"></a> 创建一个SampleWindow类</h4>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> test.wms.samplewindow;</span><br><span class="line"><span class="keyword">import</span> android.content.Context;</span><br><span class="line"><span class="keyword">import</span> android.content.res.Configuration;</span><br><span class="line"><span class="keyword">import</span> android.graphics.Canvas;</span><br><span class="line"><span class="keyword">import</span> android.graphics.Color;</span><br><span class="line"><span class="keyword">import</span> android.graphics.Paint;</span><br><span class="line"><span class="keyword">import</span> android.graphics.Point;</span><br><span class="line"><span class="keyword">import</span> android.graphics.Rect;</span><br><span class="line"><span class="keyword">import</span> android.os.Binder;</span><br><span class="line"><span class="keyword">import</span> android.os.Bundle;</span><br><span class="line"><span class="keyword">import</span> android.os.IBinder;</span><br><span class="line"><span class="keyword">import</span> android.os.Looper;</span><br><span class="line"><span class="keyword">import</span> android.os.ParcelFileDescriptor;</span><br><span class="line"><span class="keyword">import</span> android.view.Choreographer;</span><br><span class="line"><span class="keyword">import</span> android.view.Display;</span><br><span class="line"><span class="keyword">import</span> android.view.DragEvent;</span><br><span class="line"><span class="keyword">import</span> android.view.Gravity;</span><br><span class="line"><span class="keyword">import</span> android.view.InputEvent;</span><br><span class="line"><span class="keyword">import</span> android.view.MotionEvent;</span><br><span class="line"><span class="keyword">import</span> android.view.Surface;</span><br><span class="line"><span class="keyword">import</span> android.view.View;</span><br><span class="line"><span class="keyword">import</span> android.view.WindowManager;</span><br><span class="line"><span class="keyword">import</span> android.os.ServiceManager;</span><br><span class="line"><span class="keyword">import</span> android.view.InputEventReceiver;</span><br><span class="line"><span class="keyword">import</span> android.view.InputChannel;</span><br><span class="line"><span class="keyword">import</span> android.view.DisplayInfo;</span><br><span class="line"><span class="keyword">import</span> android.view.WindowManagerGlobal;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> android.view.IWindow;</span><br><span class="line"><span class="keyword">import</span> android.view.IWindowSession;</span><br><span class="line"><span class="keyword">import</span> android.view.IWindowManager;</span><br><span class="line"><span class="keyword">import</span> android.hardware.display.IDisplayManager;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SampleWindow</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            <span class="comment">//SampleWindow.Run()是这个程序的主入口</span></span><br><span class="line">            <span class="keyword">new</span> SampleWindow().Run();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//IWindowSession 是客户端向WMS请求窗口操作的中间代理，并且是进程唯一的</span></span><br><span class="line">    IWindowSession mSession = <span class="keyword">null</span>;</span><br><span class="line">    <span class="comment">//InputChannel 是窗口接收用户输入事件的管道。在第5章中将对其进行详细的探讨</span></span><br><span class="line">    InputChannel mInputChannel = <span class="keyword">new</span> InputChannel();</span><br><span class="line">    <span class="comment">// 下面的三个Rect保存了窗口的布局结果。其中mFrame表示了窗口在屏幕上的位置与尺寸</span></span><br><span class="line">    <span class="comment">// 在4.4中将详细介绍它们的作用以及计算原理</span></span><br><span class="line">    Rect mInsets1 = <span class="keyword">new</span> Rect();</span><br><span class="line">	Rect mInsets2 = <span class="keyword">new</span> Rect();</span><br><span class="line">    Rect mFrame = <span class="keyword">new</span> Rect();</span><br><span class="line">    Rect mVisibleInsets = <span class="keyword">new</span> Rect();</span><br><span class="line">    Configuration mConfig = <span class="keyword">new</span> Configuration();</span><br><span class="line">    <span class="comment">//窗口的Surface，在此Surface上进行的绘制都将在此窗口上显示出来</span></span><br><span class="line">    Surface mSurface = <span class="keyword">new</span> Surface();</span><br><span class="line">    <span class="comment">// 用于在窗口上进行绘图的画刷</span></span><br><span class="line">    Paint mPaint = <span class="keyword">new</span> Paint();</span><br><span class="line">    <span class="comment">// 添加窗口所需的令牌</span></span><br><span class="line">    IBinder mToken = <span class="keyword">new</span> Binder();</span><br><span class="line">    <span class="comment">// 一个窗口对象，本例演示了如何将此窗口添加到WMS中，并在其上进行绘制操作</span></span><br><span class="line">    MyWindow mWindow = <span class="keyword">new</span> MyWindow();</span><br><span class="line">    <span class="comment">//WindowManager.LayoutParams定义了窗口的布局属性，包括位置、尺寸以及窗口类型等</span></span><br><span class="line">    WindowManager.LayoutParams mLp = <span class="keyword">new</span> WindowManager.LayoutParams();</span><br><span class="line">    Choreographer mChoreographer = <span class="keyword">null</span>;</span><br><span class="line">    <span class="comment">//InputHandler 用于从InputChannel接收按键事件做出响应</span></span><br><span class="line">    InputHandler mInputHandler = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">boolean</span> mContinueAnime = <span class="keyword">true</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Run</span><span class="params">()</span> <span class="keyword">throws</span> Exception</span>&#123;</span><br><span class="line">        Looper.prepareMainLooper();</span><br><span class="line">        <span class="comment">// 获取WMS服务</span></span><br><span class="line">        IWindowManager wms = IWindowManager.Stub.asInterface(</span><br><span class="line">                ServiceManager.getService(Context.WINDOW_SERVICE));</span><br><span class="line">        <span class="comment">// 通过WindowManagerGlobal获取进程唯一的IWindowSession实例。它将用于向WMS</span></span><br><span class="line">        <span class="comment">// 发送请求。注意这个函数在较早的Android版本（如4.1）位于ViewRootImpl类中</span></span><br><span class="line">        mSession= WindowManagerGlobal.getWindowSession();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 获取屏幕分辨率</span></span><br><span class="line">        IDisplayManager dm = IDisplayManager.Stub.asInterface(</span><br><span class="line">            ServiceManager.getService(Context.DISPLAY_SERVICE));</span><br><span class="line"></span><br><span class="line">        DisplayInfo di = dm.getDisplayInfo(Display.DEFAULT_DISPLAY);</span><br><span class="line"></span><br><span class="line">        Point scrnSize = <span class="keyword">new</span> Point(di.appWidth, di.appHeight);</span><br><span class="line">         <span class="comment">// 初始化WindowManager.LayoutParams</span></span><br><span class="line">        initLayoutParams(scrnSize);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 将新窗口添加到WMS</span></span><br><span class="line">        installWindow(wms);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 初始化Choreographer的实例，此实例为线程唯一。这个类的用法与Handler</span></span><br><span class="line">        <span class="comment">// 类似，不过它总是在VSYC同步时回调，所以比Handler更适合做动画的循环器[1]</span></span><br><span class="line">        mChoreographer= Choreographer.getInstance();</span><br><span class="line">        <span class="comment">// 开始处理第一帧的动画</span></span><br><span class="line">        scheduleNextFrame();</span><br><span class="line">        <span class="comment">// 当前线程陷入消息循环，直到Looper.quit()</span></span><br><span class="line">        Looper.loop();</span><br><span class="line">        <span class="comment">// 标记不要继续绘制动画帧</span></span><br><span class="line">         mContinueAnime= <span class="keyword">false</span>;</span><br><span class="line">         <span class="comment">// 卸载当前Window</span></span><br><span class="line">        uninstallWindow(wms);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">   <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">initLayoutParams</span><span class="params">(Point screenSize)</span> </span>&#123;</span><br><span class="line">         <span class="comment">// 标记即将安装的窗口类型为SYSTEM_ALERT，这将使得窗口的ZOrder顺序比较靠前</span></span><br><span class="line">        mLp.type = WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;</span><br><span class="line">        mLp.setTitle(<span class="string">"SampleWindow"</span>);</span><br><span class="line">         <span class="comment">// 设定窗口的左上角坐标以及高度和宽度</span></span><br><span class="line">        mLp.gravity = Gravity.LEFT | Gravity.TOP;</span><br><span class="line">        mLp.x = screenSize.x / <span class="number">4</span>;</span><br><span class="line">        mLp.y = screenSize.y / <span class="number">4</span>;</span><br><span class="line">        mLp.width = screenSize.x / <span class="number">2</span>;</span><br><span class="line">        mLp.height = screenSize.y / <span class="number">2</span>;</span><br><span class="line">        <span class="comment">// 和输入事件相关的Flag，希望当输入事件发生在此窗口之外时，其他窗口也可以接受输入事件</span></span><br><span class="line">        mLp.flags = mLp.flags | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">installWindow</span><span class="params">(IWindowManager wms)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="comment">// 首先向WMS声明一个Token，任何一个Window都需要隶属与一个特定类型的Token</span></span><br><span class="line">        wms.addWindowToken(mToken,WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);</span><br><span class="line">        <span class="comment">// 设置窗口所隶属的Token</span></span><br><span class="line">        mLp.token = mToken;</span><br><span class="line">        <span class="comment">// 通过IWindowSession将窗口安装进WMS，注意，此时仅仅是安装到WMS，本例的Window</span></span><br><span class="line">        <span class="comment">// 目前仍然没有有效的Surface。不过，经过这个调用后，mInputChannel已经可以用来接受</span></span><br><span class="line">        <span class="comment">// 输入事件了</span></span><br><span class="line">         mSession.add(mWindow,<span class="number">0</span>, mLp, View.VISIBLE, mInsets2, mInputChannel);</span><br><span class="line">        <span class="comment">/*通过IWindowSession要求WMS对本窗口进行重新布局，经过这个操作后，WMS将会为窗口</span></span><br><span class="line"><span class="comment">         创建一块用于绘制的Surface并保存在参数mSurface中。同时，这个Surface被WMS放置在</span></span><br><span class="line"><span class="comment">        LayoutParams所指定的位置上 */</span></span><br><span class="line">        mSession.relayout(mWindow,<span class="number">0</span>, mLp, mLp.width, mLp.height, View.VISIBLE,</span><br><span class="line">                <span class="number">0</span>, mFrame, mInsets1,mInsets2,mVisibleInsets, mConfig, mSurface);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(!mSurface.isValid()) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">"Failed creating Surface."</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 基于WMS返回的InputChannel创建一个Handler，用于监听输入事件</span></span><br><span class="line">        <span class="comment">//mInputHandler一旦被创建，就已经在监听输入事件了</span></span><br><span class="line">        mInputHandler= <span class="keyword">new</span> InputHandler(mInputChannel, Looper.myLooper());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">uninstallWindow</span><span class="params">(IWindowManager wms)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">         <span class="comment">// 从WMS处卸载窗口</span></span><br><span class="line">         mSession.remove(mWindow);</span><br><span class="line">        <span class="comment">// 从WMS处移除之前添加的Token</span></span><br><span class="line">        wms.removeWindowToken(mToken);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">scheduleNextFrame</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="comment">// 要求在显示系统刷新下一帧时回调mFrameRender，注意，只回调一次</span></span><br><span class="line">         mChoreographer.postCallback(Choreographer.CALLBACK_ANIMATION</span><br><span class="line">                , mFrameRender, <span class="keyword">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这个Runnable对象用以在窗口上描绘一帧</span></span><br><span class="line">    <span class="keyword">public</span> Runnable mFrameRender = <span class="keyword">new</span> Runnable() &#123;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">            <span class="keyword">try</span>&#123;</span><br><span class="line">                <span class="comment">// 获取当期时间戳</span></span><br><span class="line">                <span class="keyword">long</span> time = mChoreographer.getFrameTime() % <span class="number">1000</span>;</span><br><span class="line">                <span class="comment">// 绘图</span></span><br><span class="line">                <span class="keyword">if</span> (mSurface.isValid()) &#123;</span><br><span class="line">                    Canvas canvas = mSurface.lockCanvas(<span class="keyword">null</span>);</span><br><span class="line">                    canvas.drawColor(Color.DKGRAY);</span><br><span class="line">                    canvas.drawRect(<span class="number">2</span> * mLp.width * time / <span class="number">1000</span></span><br><span class="line">                            - mLp.width, <span class="number">0</span>, <span class="number">2</span> *mLp.width * time / <span class="number">1000</span>, mLp.height,mPaint);</span><br><span class="line">                    mSurface.unlockCanvasAndPost(canvas);</span><br><span class="line">                    mSession.finishDrawing(mWindow);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span>(mContinueAnime)&#123;</span><br><span class="line">                    scheduleNextFrame();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 定义一个类继承InputEventReceiver，用以在其onInputEvent()函数中接收窗口的输入事件</span></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">InputHandler</span> <span class="keyword">extends</span> <span class="title">InputEventReceiver</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        Looper mLooper = <span class="keyword">null</span>;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">InputHandler</span><span class="params">(InputChannel inputChannel, Looper looper)</span> </span>&#123;</span><br><span class="line">            <span class="keyword">super</span>(inputChannel,looper);</span><br><span class="line">            mLooper= looper;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">       <span class="meta">@Override</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onInputEvent</span><span class="params">(InputEvent event)</span> </span>&#123;</span><br><span class="line">            <span class="keyword">if</span>(event <span class="keyword">instanceof</span> MotionEvent) &#123;</span><br><span class="line">                MotionEvent me = (MotionEvent)event;</span><br><span class="line">                <span class="keyword">if</span> (me.getAction() ==MotionEvent.ACTION_UP) &#123;</span><br><span class="line">                    <span class="comment">// 退出程序</span></span><br><span class="line">                    mLooper.quit();</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            <span class="keyword">super</span>.onInputEvent(event);</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">     <span class="comment">// 实现一个继承自IWindow.Stub的类MyWindow</span></span><br><span class="line">     <span class="class"><span class="keyword">class</span> <span class="title">MyWindow</span> <span class="keyword">extends</span> <span class="title">IWindow</span>.<span class="title">Stub</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">resized</span><span class="params">(Rect frame, Rect overscanInsets, Rect contentInsets,</span></span></span><br><span class="line"><span class="function"><span class="params">                                Rect visibleInsets, <span class="keyword">boolean</span> reportDraw, Configuration newConfig)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">moved</span><span class="params">(<span class="keyword">int</span> newX, <span class="keyword">int</span> newY)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">dispatchAppVisibility</span><span class="params">(<span class="keyword">boolean</span> visible)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">dispatchGetNewSurface</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">dispatchScreenState</span><span class="params">(<span class="keyword">boolean</span> on)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">windowFocusChanged</span><span class="params">(<span class="keyword">boolean</span> hasFocus, <span class="keyword">boolean</span> touchEnabled)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">executeCommand</span><span class="params">(String command, String parameters, ParcelFileDescriptor out)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">closeSystemDialogs</span><span class="params">(String reason)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">dispatchWallpaperOffsets</span><span class="params">(<span class="keyword">float</span> x, <span class="keyword">float</span> y, <span class="keyword">float</span> xStep, <span class="keyword">float</span> yStep, <span class="keyword">boolean</span> sync)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">dispatchDragEvent</span><span class="params">(DragEvent event)</span> </span>&#123;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">dispatchSystemUiVisibilityChanged</span><span class="params">(<span class="keyword">int</span> seq, <span class="keyword">int</span> globalUi,</span></span></span><br><span class="line"><span class="function"><span class="params">                                                          <span class="keyword">int</span> localValue, <span class="keyword">int</span> localChanges)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">dispatchWallpaperCommand</span><span class="params">(String action, <span class="keyword">int</span> x, <span class="keyword">int</span> y,</span></span></span><br><span class="line"><span class="function"><span class="params">                                                 <span class="keyword">int</span> z, Bundle extras, <span class="keyword">boolean</span> sync)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doneAnimating</span><span class="params">()</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">            &#125;</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="创建androidmk文件"><a class="markdownIt-Anchor" href="#创建androidmk文件"></a> 创建Android.mk文件</h4>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Copyright 2012 The Android Open Source Project</span></span><br><span class="line"></span><br><span class="line">LOCAL_PATH:= $(call my-dir)</span><br><span class="line"></span><br><span class="line">include $(CLEAR_VARS)</span><br><span class="line">LOCAL_SRC_FILES := $(call all-subdir-java-files)</span><br><span class="line">LOCAL_MODULE_TAGS := optional</span><br><span class="line">LOCAL_MODULE := samplewindow</span><br><span class="line">include $(BUILD_JAVA_LIBRARY)</span><br></pre></td></tr></table></figure>
+<h4 id="创建编译目录"><a class="markdownIt-Anchor" href="#创建编译目录"></a> 创建编译目录</h4>
+<p>将Android.mk和SampleWindow.java文件放在frameworks\base\cmds\samplewindow目录下，最终的结构如下：<br>
+frameworks\base\cmds\samplewindow\src\test\wms\samplewindow\SampleWindow.java<br>
+frameworks\base\cmds\samplewindow\<a href="http://Android.mk" target="_blank" rel="noopener">Android.mk</a></p>
+<h4 id="编译模块"><a class="markdownIt-Anchor" href="#编译模块"></a> 编译模块</h4>
+<p>cd到Android源码目录中执行:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">. /build/envsetup.sh</span><br><span class="line">lunch xxx</span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> frameworks\base\cmds\samplewindow\</span><br><span class="line">mm</span><br></pre></td></tr></table></figure>
+<p>经过编译后的模块最终会在out\target\product\system目录下生成samplewindow.jar文件，将该文件拷贝出来</p>
+<h4 id="将jar文件转换为dex文件"><a class="markdownIt-Anchor" href="#将jar文件转换为dex文件"></a> 将jar文件转换为dex文件</h4>
+<p>由于jar文件不能再Android系统中直接运行，需要转换为dex文件，所以我们需要通过sdk工具dx来进行转换，dx脚本在<br>
+sdk/build-tools/目录下，执行dx --dex --output=samplewindow.dex samplewindow.jar生成dex文件</p>
+<h4 id="执行dex文件"><a class="markdownIt-Anchor" href="#执行dex文件"></a> 执行dex文件</h4>
+<p>通过app_process 命令来执行dex文件，命令如下</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">app_process -Djava.class.path=/data/local/tmp/samplewindow.dex /system/bin test.wms.samplewindow.SampleWindow</span><br></pre></td></tr></table></figure>
+<p>执行完成后手机屏幕就会显示我们创建的窗口，根据我们的设置，当在窗口触摸手指离开后退出窗口。</p>
+<h3 id="参考"><a class="markdownIt-Anchor" href="#参考"></a> 参考</h3>
+<p>深入理解WindowManagerService<br>
+<a href="https://blog.csdn.net/innost/article/details/47660193" target="_blank" rel="noopener">https://blog.csdn.net/innost/article/details/47660193</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpayimg.png" alt="esli 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipayimg.png" alt="esli 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Android/" rel="tag"># Android</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/[object Object]/asop-contentprovider-src/" rel="next" title="contentprovider源码走读">
+                <i class="fa fa-chevron-left"></i> contentprovider源码走读
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/[object Object]/aosp-surfacecontrol-transaction/" rel="prev" title="SurfaceControl事务提交过程">
+                SurfaceControl事务提交过程 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/uploads/avatar.png"
+                alt="esli" />
+            
+              <p class="site-author-name" itemprop="name">esli</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">61</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#windowmanagerservice创建窗口测试"><span class="nav-number">1.</span> <span class="nav-text"> WindowManagerService创建窗口测试</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#创建一个samplewindow类"><span class="nav-number">1.1.</span> <span class="nav-text"> 创建一个SampleWindow类</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#创建androidmk文件"><span class="nav-number">1.2.</span> <span class="nav-text"> 创建Android.mk文件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#创建编译目录"><span class="nav-number">1.3.</span> <span class="nav-text"> 创建编译目录</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#编译模块"><span class="nav-number">1.4.</span> <span class="nav-text"> 编译模块</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#将jar文件转换为dex文件"><span class="nav-number">1.5.</span> <span class="nav-text"> 将jar文件转换为dex文件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#执行dex文件"><span class="nav-number">1.6.</span> <span class="nav-text"> 执行dex文件</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#参考"><span class="nav-number">2.</span> <span class="nav-text"> 参考</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">esli</span>
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("jBNLE1XrpdNfIpNnvp02BNFi-gzGzoHsz", "1KETbc2T1LA8C2oPKVwpbzVm");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

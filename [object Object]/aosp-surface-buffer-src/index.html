@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Android," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="Android View绘制是GUI系统的核心，而绘制view是需要缓冲区的，也就是我们说的画布，因此了解这个缓冲区的分配流程是有必要的，本篇将对该缓冲区的分配进行解释。  Activity结构剖析 Acitivty实际上在WMS端只是个Window，是以WindowState进行描述的，在AMS端它是一个ActivityRecord，在Activity内部它持有一个mWindow，它实际上为一个">
+<meta name="keywords" content="Android">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Surface绘图缓冲区的创建流程">
+<meta property="og:url" content="http://esligh.github.io/[object Object]/aosp-surface-buffer-src/index.html">
+<meta property="og:site_name" content="esli&#39;s Blog">
+<meta property="og:description" content="Android View绘制是GUI系统的核心，而绘制view是需要缓冲区的，也就是我们说的画布，因此了解这个缓冲区的分配流程是有必要的，本篇将对该缓冲区的分配进行解释。  Activity结构剖析 Acitivty实际上在WMS端只是个Window，是以WindowState进行描述的，在AMS端它是一个ActivityRecord，在Activity内部它持有一个mWindow，它实际上为一个">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-03-16T08:08:25.697Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Surface绘图缓冲区的创建流程">
+<meta name="twitter:description" content="Android View绘制是GUI系统的核心，而绘制view是需要缓冲区的，也就是我们说的画布，因此了解这个缓冲区的分配流程是有必要的，本篇将对该缓冲区的分配进行解释。  Activity结构剖析 Acitivty实际上在WMS端只是个Window，是以WindowState进行描述的，在AMS端它是一个ActivityRecord，在Activity内部它持有一个mWindow，它实际上为一个">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://esligh.github.io/[object Object]/aosp-surface-buffer-src/"/>
+
+
+
+
+
+  <title>Surface绘图缓冲区的创建流程 | esli's Blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">esli's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">day day up</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://esligh.github.io/[object Object]/aosp-surface-buffer-src/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="esli">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="esli's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Surface绘图缓冲区的创建流程</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-24T09:37:17+08:00">
+                2018-01-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AOSP/" itemprop="url" rel="index">
+                    <span itemprop="name">AOSP</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+             <span id="/[object Object]/aosp-surface-buffer-src/" class="leancloud_visitors" data-flag-title="Surface绘图缓冲区的创建流程">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Android View绘制是GUI系统的核心，而绘制view是需要缓冲区的，也就是我们说的画布，因此了解这个缓冲区的分配流程是有必要的，本篇将对该缓冲区的分配进行解释。</p>
+<h3 id="activity结构剖析"><a class="markdownIt-Anchor" href="#activity结构剖析"></a> Activity结构剖析</h3>
+<p>Acitivty实际上在WMS端只是个Window，是以WindowState进行描述的，在AMS端它是一个ActivityRecord，在Activity内部它持有一个mWindow，它实际上为一个PhoneWindow实例，在PhoneWindow中维护了一个DecorView，也就是view树，这个PhoneWindow实例由一个WindowManagerImpl进行管理，在WindowManagaerImpl内部持有一个WindowManagerGlobal单例，它内部持有WMS的本地代理IWindowManager和由其打开的一个IWindowSession负责和WMS进行会话，另一方面它负责整个应用的窗口视图的管理，也就是DecorView及ViewRootImpl的管理。每个新添加的window最终会在WMS端以WidowState的形式存在于WMS，WMS不关心window的View树的内容，它只关心Window的大小样式以及Z序等，而绘制的流程是由我们应用程序进行的，实际上就是由ViewRootImp进行绘制的。那么相应的ViewRootImpl在进行绘制前是需要一个画布进行view树的绘制的，这个画布就是Surface。接下来我们将围绕这个Surface进行话题的展开。</p>
+<h3 id="画布的分配"><a class="markdownIt-Anchor" href="#画布的分配"></a> 画布的分配</h3>
+<p>在ViewRootImpl创建时同时会new一个Surface对象</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> Surface mSurface = <span class="keyword">new</span> Surface();</span><br></pre></td></tr></table></figure>
+<p>接下来我们看下这个Surface的内部会做些什么。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Surface</span> <span class="keyword">implements</span> <span class="title">Parcelable</span> </span>&#123;</span><br><span class="line">    ^</span><br><span class="line">    <span class="keyword">int</span> mNativeObject; <span class="comment">// package scope only for SurfaceControl access</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> mLockedObject;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> mGenerationId; <span class="comment">// incremented each time mNativeObject changes</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Canvas mCanvas = <span class="keyword">new</span> CompatibleCanvas();</span><br><span class="line">    ……</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Surface</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以看到Surface的构造方法只是个空实现，而貌似mCanvas可能会是真正的画布，我们继续看看Canvas的代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Canvas</span> </span>&#123;</span><br><span class="line">     <span class="comment">/** <span class="doctag">@hide</span> */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">int</span> mNativeCanvas;</span><br><span class="line">    <span class="comment">// may be null</span></span><br><span class="line">    <span class="keyword">private</span> Bitmap mBitmap;</span><br><span class="line">    <span class="comment">// optional field set by the caller</span></span><br><span class="line">    <span class="keyword">private</span> DrawFilter mDrawFilter;</span><br><span class="line">    ……</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Canvas</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (!isHardwareAccelerated()) &#123;</span><br><span class="line">            <span class="comment">// 0 means no native bitmap</span></span><br><span class="line">            mNativeCanvas = initRaster(<span class="number">0</span>);</span><br><span class="line">            mFinalizer = <span class="keyword">new</span> CanvasFinalizer(mNativeCanvas);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            mFinalizer = <span class="keyword">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在Canava的构造方法中也并没有相关缓冲区分配的动作，这么说new出来的Surface并非真的分派了缓冲区，而只是一个空壳。想想也就能理解，我们知道ViewRootImpl分派的时机是WindowManagerGlobal通过addView来添加view树的时候分配的时候，这时候WMS还不知道这个Window的存在的(最起码得知道分配多大吧)，那么给view树分配缓冲区的确为时过早。那么什么时候分配合适呢？当然是准备绘制view树的时候。view树的绘制是在performTraversal中进行的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">performTraversals</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// cache mView since it is used so much below...</span></span><br><span class="line">    <span class="keyword">final</span> View host = mView;<span class="comment">//viewRoot管理的view树 decorView</span></span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">boolean</span> windowShouldResize = layoutRequested &amp;&amp; windowSizeMayChange</span><br><span class="line">            &amp;&amp; ((mWidth != host.getMeasuredWidth() || mHeight != host.getMeasuredHeight())</span><br><span class="line">                || (lp.width == ViewGroup.LayoutParams.WRAP_CONTENT &amp;&amp;</span><br><span class="line">                        frame.width() &lt; desiredWindowWidth &amp;&amp; frame.width() != mWidth)</span><br><span class="line">                || (lp.height == ViewGroup.LayoutParams.WRAP_CONTENT &amp;&amp;</span><br><span class="line">                        frame.height() &lt; desiredWindowHeight &amp;&amp; frame.height() != mHeight));</span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">if</span> (mFirst || windowShouldResize || insetsChanged ||</span><br><span class="line">                viewVisibilityChanged || params != <span class="keyword">null</span> || mConfigurationChanged) &#123;</span><br><span class="line">         relayoutResult = relayoutWindow(params, viewVisibility, insetsPending);</span><br><span class="line">         ……</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">    performMeasure();</span><br><span class="line">    ……</span><br><span class="line">    performLayout();</span><br><span class="line">    ……</span><br><span class="line">    performDraw();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>performTraversals函数比较长，我这里只取跟本篇相关的内容，在performTraversals并非仅仅只有三大绘制流程performMeasure,performLayout和performDraw,实际上在这三个流程之前还是做了很多事情的，我简单的说下：</p>
+<ol>
+<li>
+<p>计算期望的窗口大小，如果Window带状态栏，那么在其大小中应该除去状态栏的那部分宽高。否则大小应该为整个屏幕的大小</p>
+</li>
+<li>
+<p>如果窗口大小发生了变化也需要记录下来</p>
+</li>
+<li>
+<p>计算窗口的内容区域边衬是否变化</p>
+</li>
+<li>
+<p>如果可见性发生了变化也需要记录，同时通知view树子视图可见性发生了变化</p>
+</li>
+<li>
+<p>根据条件判断是否需要relayoutWindow，在relayoutWindow中会重新计算窗口大小。需要满足的条件至少为以下一种：</p>
+<pre><code> &lt;1&gt;. Activity窗口是第一次执行测量、布局和绘制操作，即ViewRoot类的成员变量mFirst的值等于true。
+ 
+ &lt;2&gt;. 前面得到的变量windowShouldResize的值等于true，即Activity窗口的大小的确是发生了变化。
+ 
+ &lt;3&gt;. 前面得到的变量insetsChanged的值等于true，即Activity窗口的内容区域边衬发生了变化。
+ 
+ &lt;4&gt;. Activity窗口的可见性发生了变化，即变量viewVisibilityChanged的值等于true。
+ 
+ &lt;5&gt;. Activity窗口的属性发生了变化，即变量params指向了一个WindowManager.LayoutParams对象
+</code></pre>
+</li>
+</ol>
+<p>6.执行绘制流程，这个在另外的篇幅再做介绍</p>
+<p>在relayoutWindow中会计算窗口的大小，同时这里会为窗口分配缓冲区。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">relayoutWindow</span><span class="params">(WindowManager.LayoutParams params, <span class="keyword">int</span> viewVisibility,</span></span></span><br><span class="line"><span class="function"><span class="params">            <span class="keyword">boolean</span> insetsPending)</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line"></span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">int</span> relayoutResult = mWindowSession.relayout(</span><br><span class="line">            mWindow, mSeq, params,</span><br><span class="line">            (<span class="keyword">int</span>) (mView.getMeasuredWidth() * appScale + <span class="number">0.5f</span>),</span><br><span class="line">            (<span class="keyword">int</span>) (mView.getMeasuredHeight() * appScale + <span class="number">0.5f</span>),</span><br><span class="line">            viewVisibility, insetsPending ? WindowManagerGlobal.RELAYOUT_INSETS_PENDING : <span class="number">0</span>,</span><br><span class="line">            mWinFrame, mPendingOverscanInsets, mPendingContentInsets, mPendingVisibleInsets,</span><br><span class="line">            mPendingConfiguration, mSurface);</span><br><span class="line"></span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">return</span> relayoutResult;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过mWindowSession和WMS进行会话调用relayout计算窗口的大小并将mSurface传递给WMS。IWindowSession的服务端为Session，我们看看它的实现</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">relayout</span><span class="params">(IWindow window, <span class="keyword">int</span> seq, WindowManager.LayoutParams attrs,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">int</span> requestedWidth, <span class="keyword">int</span> requestedHeight, <span class="keyword">int</span> viewFlags,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">int</span> flags, Rect outFrame, Rect outOverscanInsets, Rect outContentInsets,</span></span></span><br><span class="line"><span class="function"><span class="params">        Rect outVisibleInsets, Configuration outConfig, Surface outSurface)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> res = mService.relayoutWindow(<span class="keyword">this</span>, window, seq, attrs,</span><br><span class="line">            requestedWidth, requestedHeight, viewFlags, flags,</span><br><span class="line">            outFrame, outOverscanInsets, outContentInsets, outVisibleInsets,</span><br><span class="line">            outConfig, outSurface);<span class="comment">//调用WMS的relayoutWindow</span></span><br><span class="line">    <span class="keyword">return</span> res;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Session的relayout会通过WMS的relayoutWindow来完成。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">relayoutWindow</span><span class="params">(Session session, IWindow client, <span class="keyword">int</span> seq,</span></span></span><br><span class="line"><span class="function"><span class="params">    WindowManager.LayoutParams attrs, <span class="keyword">int</span> requestedWidth,</span></span></span><br><span class="line"><span class="function"><span class="params">    <span class="keyword">int</span> requestedHeight, <span class="keyword">int</span> viewVisibility, <span class="keyword">int</span> flags,</span></span></span><br><span class="line"><span class="function"><span class="params">    Rect outFrame, Rect outOverscanInsets, Rect outContentInsets,</span></span></span><br><span class="line"><span class="function"><span class="params">    Rect outVisibleInsets, Configuration outConfig, Surface outSurface)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">synchronized</span>(mWindowMap) &#123;</span><br><span class="line">        WindowState win = windowForClientLocked(session, client, <span class="keyword">false</span>);</span><br><span class="line">        <span class="keyword">if</span> (win == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        WindowStateAnimator winAnimator = win.mWinAnimator;</span><br><span class="line"></span><br><span class="line">        ……</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (!win.mHasSurface) &#123;</span><br><span class="line">                surfaceChanged = <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//创建SurfaceControl 准备画布</span></span><br><span class="line">            SurfaceControl surfaceControl = winAnimator.createSurfaceLocked();</span><br><span class="line">            <span class="keyword">if</span> (surfaceControl != <span class="keyword">null</span>) &#123;</span><br><span class="line">                outSurface.copyFrom(surfaceControl);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">// For some reason there isn't a surface.  Clear the</span></span><br><span class="line">                <span class="comment">// caller's object so they see the same state.</span></span><br><span class="line">                outSurface.release();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; </span><br><span class="line">        ……</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>relayoutWindow的参树client为ViewRootImpl传递的W对象，是一个Binder对象，WMS通过client来通知应用窗口的变化。最后一个参数从命名上来看，它是一个出参，也就是通过这个方法可以拿到真正可用的Surface。可以看到outSurface是由copyFrom从SurfaceControl得来的。这个surfaceControl是通过winAnimator.createSurfaceLocked()来创建的。这个winAnimator是一个WindowStateAnimator，在我们为Window创建WindowState时创建的，它和WindowState是一一对应的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">frameworks/base/services/java/com/android/server/wm/WindowStateAnimator.java</span><br><span class="line"><span class="function">SurfaceControl <span class="title">createSurfaceLocked</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mSurfaceControl == <span class="keyword">null</span>) &#123;</span><br><span class="line">        ……</span><br><span class="line">        mSurfaceControl = <span class="keyword">new</span> SurfaceControl(</span><br><span class="line">            mSession.mSurfaceSession,</span><br><span class="line">            attrs.getTitle().toString(),</span><br><span class="line">            w, h, format, flags);</span><br><span class="line">        ……</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> mSurfaceControl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>mSurfaceControl在WindowStateAnimator中只会创建一次，这里的mSession实际上就是应用端和WMS进行会话的session，即IWindowSession，在创建时会指定缓冲区大小，格式以及标记。那么mSurfaceSession是什么呢，在哪里创建的呢？我们继续看</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">frameworks/base/services/java/com/android/server/wm/WindowManagerService.java</span><br><span class="line"> <span class="comment">//为客户端创建一个Session会话，后面客户端使用这个Session同WMS进行会话    </span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> IWindowSession <span class="title">openSession</span><span class="params">(IInputMethodClient client,</span></span></span><br><span class="line"><span class="function"><span class="params">        IInputContext inputContext)</span> </span>&#123;</span><br><span class="line">    Session session = <span class="keyword">new</span> Session(<span class="keyword">this</span>, client, inputContext);</span><br><span class="line">    <span class="keyword">return</span> session;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">addWindow</span><span class="params">(Session session, IWindow client, <span class="keyword">int</span> seq,</span></span></span><br><span class="line"><span class="function"><span class="params">    WindowManager.LayoutParams attrs, <span class="keyword">int</span> viewVisibility, <span class="keyword">int</span> displayId,</span></span></span><br><span class="line"><span class="function"><span class="params">    Rect outContentInsets, InputChannel outInputChannel)</span> </span>&#123;</span><br><span class="line">    ……    </span><br><span class="line">    win = <span class="keyword">new</span> WindowState(<span class="keyword">this</span>, session, client, token,</span><br><span class="line">                    attachedWindow, appOp[<span class="number">0</span>], seq, attrs, viewVisibility, displayContent);</span><br><span class="line">    ……</span><br><span class="line">    win.attach()</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">frameworks/base/services/java/com/android/server/wm/WindowState.java</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">attach</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (WindowManagerService.localLOGV) Slog.v(</span><br><span class="line">        TAG, <span class="string">"Attaching "</span> + <span class="keyword">this</span> + <span class="string">" token="</span> + mToken</span><br><span class="line">        + <span class="string">", list="</span> + mToken.windows);</span><br><span class="line">    mSession.windowAddedLocked();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">frameworks/base/services/java/com/android/server/wm/Session.java</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">windowAddedLocked</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mSurfaceSession == <span class="keyword">null</span>) &#123;</span><br><span class="line">        mSurfaceSession = <span class="keyword">new</span> SurfaceSession();</span><br><span class="line">        mService.mSessions.add(<span class="keyword">this</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    mNumWindow++;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在WMS为应用打开一个会话session后并没有立马去创建mSurfaceSession，而是在Window添加到WMS的时候创建完WindowState后通过attach方法创建的。它同样的对于一个Session只会创建一个，也就是说我们的应用程序只会有一个SurfaceSession，因为它是Session的成员嘛。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">SurfaceSession</span> </span>&#123;</span><br><span class="line">    <span class="comment">// Note: This field is accessed by native code.</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> mNativeClient; <span class="comment">// SurfaceComposerClient*</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">native</span> <span class="keyword">int</span> <span class="title">nativeCreate</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title">nativeDestroy</span><span class="params">(<span class="keyword">int</span> ptr)</span></span>;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title">nativeKill</span><span class="params">(<span class="keyword">int</span> ptr)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/** Create a new connection with the surface flinger. */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SurfaceSession</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        mNativeClient = nativeCreate();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>SurfaceSession的实现很简单，因为它的工作都放在native层完成了。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">frameworks/base/core/jni/android_view_SurfaceSession.cpp</span><br><span class="line"><span class="function"><span class="keyword">static</span> jint <span class="title">nativeCreate</span><span class="params">(JNIEnv* env, jclass clazz)</span> </span>&#123;</span><br><span class="line">    SurfaceComposerClient* client = <span class="keyword">new</span> SurfaceComposerClient();<span class="comment">//SurfaceComposerClient是处于客户端的</span></span><br><span class="line">    client-&gt;incStrong((<span class="keyword">void</span>*)nativeCreate);</span><br><span class="line">    <span class="keyword">return</span> reinterpret_cast&lt;jint&gt;(client);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>实际上它是创建了一个SurfaceComposerClient对象并放在mNativeClient中。这个对象是用来和SurfaceFlinger打交道的，但它并不是SurfaceFlinger的本地代理。SurfaceFlinger负责界面图层的合成，这之间会涉及我们的缓冲区，所以分配缓冲区的工作需要经过SurfaceFlinger来进行。</p>
+<p>弄清楚SurfaceSession是什么后，接下来我们看SurfaceControl的创建，它会用到SurfaceSession。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SurfaceControl</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> mNativeObject;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SurfaceControl</span><span class="params">(SurfaceSession session,</span></span></span><br><span class="line"><span class="function"><span class="params">            String name, <span class="keyword">int</span> w, <span class="keyword">int</span> h, <span class="keyword">int</span> format, <span class="keyword">int</span> flags)</span></span></span><br><span class="line"><span class="function">                    <span class="keyword">throws</span> OutOfResourcesException </span>&#123;</span><br><span class="line">        mName = name;</span><br><span class="line">        mNativeObject = nativeCreate(session, name, w, h, format, flags);<span class="comment">//通过native层创建SurfaceControl</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同样的，它的工作也是在native层进行的。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">frameworks/base/core/jni/android_view_SurfaceControl.cpp</span><br><span class="line"><span class="function"><span class="keyword">static</span> jint <span class="title">nativeCreate</span><span class="params">(JNIEnv* env, jclass clazz, jobject sessionObj,</span></span></span><br><span class="line"><span class="function"><span class="params">        jstring nameStr, jint w, jint h, jint format, jint flags)</span> </span>&#123;</span><br><span class="line">    <span class="function">ScopedUtfChars <span class="title">name</span><span class="params">(env, nameStr)</span></span>;</span><br><span class="line">    sp&lt;SurfaceComposerClient&gt; client(android_view_SurfaceSession_getClient(env, sessionObj));</span><br><span class="line">    sp&lt;SurfaceControl&gt; surface = client-&gt;createSurface(</span><br><span class="line">            String8(name.c_str()), w, h, format, flags);<span class="comment">//创建SurfaceHolder</span></span><br><span class="line">    <span class="keyword">if</span> (surface == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        jniThrowException(env, OutOfResourcesException, <span class="literal">NULL</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    surface-&gt;incStrong((<span class="keyword">void</span> *)nativeCreate);</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">int</span>(surface.get());<span class="comment">//这里返回创建的SurfaceControl</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">frameworks/base/core/jni/android_view_SurfaceSession.cpp</span><br><span class="line">sp&lt;SurfaceComposerClient&gt; android_view_SurfaceSession_getClient(</span><br><span class="line">        JNIEnv* env, jobject surfaceSessionObj) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">reinterpret_cast</span>&lt;SurfaceComposerClient*&gt;(</span><br><span class="line">            env-&gt;GetIntField(surfaceSessionObj, gSurfaceSessionClassInfo.mNativeClient));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在nativeCreate中首先通过android_view_SurfaceSession_getClient从SurfaceSession中取到之前创建的SurfaceComoserClient对象，然后通过该对象调用的CreateSurface创建SurfaceControl。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line">/frameworks/native/libs/gui/SurfaceComposerClient.cpp</span><br><span class="line"><span class="keyword">void</span> SurfaceComposerClient::onFirstRef() &#123;</span><br><span class="line">    sp&lt;ISurfaceComposer&gt; sm(ComposerService::getComposerService());</span><br><span class="line">    <span class="keyword">if</span> (sm != <span class="number">0</span>) &#123;</span><br><span class="line">        sp&lt;ISurfaceComposerClient&gt; conn = sm-&gt;createConnection();<span class="comment">//与surfaceflinger建立连接</span></span><br><span class="line">        <span class="keyword">if</span> (conn != <span class="number">0</span>) &#123;</span><br><span class="line">            mClient = conn;<span class="comment">//mClient对应服务端Client</span></span><br><span class="line">            mStatus = NO_ERROR;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">sp&lt;ISurfaceComposer&gt; ComposerService::getComposerService() &#123;</span><br><span class="line">    ComposerService&amp; instance = ComposerService::getInstance();<span class="comment">//实例采用单例</span></span><br><span class="line">    Mutex::Autolock _l(instance.mLock);</span><br><span class="line">    <span class="keyword">if</span> (instance.mComposerService == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        ComposerService::getInstance().connectLocked();</span><br><span class="line">        assert(instance.mComposerService != <span class="literal">NULL</span>);</span><br><span class="line">        ALOGD(<span class="string">"ComposerService reconnected"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> instance.mComposerService;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">void</span> ComposerService::connectLocked() &#123;</span><br><span class="line">    <span class="function"><span class="keyword">const</span> String16 <span class="title">name</span><span class="params">(<span class="string">"SurfaceFlinger"</span>)</span></span>;</span><br><span class="line">    <span class="keyword">while</span> (getService(name, &amp;mComposerService) != NO_ERROR) &#123;<span class="comment">//获取surfaceflinger服务</span></span><br><span class="line">        usleep(<span class="number">250000</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">sp&lt;SurfaceControl&gt; SurfaceComposerClient::createSurface(</span><br><span class="line">        <span class="keyword">const</span> String8&amp; name,</span><br><span class="line">        <span class="keyword">uint32_t</span> w,</span><br><span class="line">        <span class="keyword">uint32_t</span> h,</span><br><span class="line">        PixelFormat format,</span><br><span class="line">        <span class="keyword">uint32_t</span> flags)</span><br><span class="line">&#123;</span><br><span class="line">    sp&lt;SurfaceControl&gt; sur;</span><br><span class="line">    <span class="keyword">if</span> (mStatus == NO_ERROR) &#123;</span><br><span class="line">        sp&lt;IBinder&gt; handle;</span><br><span class="line">        sp&lt;IGraphicBufferProducer&gt; gbp;</span><br><span class="line">        <span class="keyword">status_t</span> err = mClient-&gt;createSurface(name, w, h, format, flags,</span><br><span class="line">                &amp;handle, &amp;gbp);<span class="comment">//在Client服务端创建相应的Layer</span></span><br><span class="line">        ALOGE_IF(err, <span class="string">"SurfaceComposerClient::createSurface error %s"</span>, strerror(-err));</span><br><span class="line">        <span class="keyword">if</span> (err == NO_ERROR) &#123;</span><br><span class="line">            sur = <span class="keyword">new</span> SurfaceControl(<span class="keyword">this</span>, handle, gbp);<span class="comment">//同时创建一个SurfaceControl，这个gbp即是对应Layer的BufferQueue</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> sur;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>SurfaceComposerClient在创建完后，强引用的会首先会执行onFirstRef 在这个方法里会通过<br>
+ComposerService::getComposerService获取到SurfaceFlinger的Binder本地代理sm，这是在ComposerService::connectLocked中通过getService获取的，SurfaceFlinger是实名Binder，因此可以通过ServiceManager查询得到。获取到SurfaceFlinger的本地代理后，就可以通过createConnection创建ISurfaceComposerClient，它是一个匿名Binder,是SurfaceFlinger服务中Client 的本地代理。Client也是个Binder Server,SurfaceFlinger为每个于其建立连接的应用进程维护一个Client便于管理。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">frameworks/native/services/surfaceflinger/Client.cpp</span><br><span class="line"><span class="comment">//应用程序创建Surface</span></span><br><span class="line"><span class="keyword">status_t</span> Client::createSurface(</span><br><span class="line">        <span class="keyword">const</span> String8&amp; name,</span><br><span class="line">        <span class="keyword">uint32_t</span> w, <span class="keyword">uint32_t</span> h, PixelFormat format, <span class="keyword">uint32_t</span> flags,</span><br><span class="line">        sp&lt;IBinder&gt;* handle,</span><br><span class="line">        sp&lt;IGraphicBufferProducer&gt;* gbp)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">MessageCreateLayer</span> :</span> <span class="keyword">public</span> MessageBase &#123;</span><br><span class="line">        SurfaceFlinger* flinger;</span><br><span class="line">        Client* client;</span><br><span class="line">        sp&lt;IBinder&gt;* handle;</span><br><span class="line">        sp&lt;IGraphicBufferProducer&gt;* gbp;</span><br><span class="line">        <span class="keyword">status_t</span> result;</span><br><span class="line">        <span class="keyword">const</span> String8&amp; name;</span><br><span class="line">        <span class="keyword">uint32_t</span> w, h;</span><br><span class="line">        PixelFormat format;</span><br><span class="line">        <span class="keyword">uint32_t</span> flags;</span><br><span class="line">    <span class="keyword">public</span>:</span><br><span class="line">        MessageCreateLayer(SurfaceFlinger* flinger,</span><br><span class="line">                <span class="keyword">const</span> String8&amp; name, Client* client,</span><br><span class="line">                <span class="keyword">uint32_t</span> w, <span class="keyword">uint32_t</span> h, PixelFormat format, <span class="keyword">uint32_t</span> flags,</span><br><span class="line">                sp&lt;IBinder&gt;* handle,</span><br><span class="line">                sp&lt;IGraphicBufferProducer&gt;* gbp)</span><br><span class="line">            : flinger(flinger), client(client),</span><br><span class="line">              handle(handle), gbp(gbp),</span><br><span class="line">              name(name), w(w), h(h), format(format), flags(flags) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">status_t</span> getResult() <span class="keyword">const</span> &#123; <span class="keyword">return</span> result; &#125;</span><br><span class="line">        <span class="comment">//message最终通过这个handler进行处理</span></span><br><span class="line">        <span class="function"><span class="keyword">virtual</span> <span class="keyword">bool</span> <span class="title">handler</span><span class="params">()</span> </span>&#123;</span><br><span class="line">            result = flinger-&gt;createLayer(name, client, w, h, format, flags,</span><br><span class="line">                    handle, gbp);<span class="comment">//创建过程由sf的createLayer完成，客户端创建一个Surface，对应的在sf中创建一个Layer</span></span><br><span class="line">            <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    sp&lt;MessageBase&gt; msg = <span class="keyword">new</span> MessageCreateLayer(mFlinger.get(),</span><br><span class="line">            name, <span class="keyword">this</span>, w, h, format, flags, handle, gbp);</span><br><span class="line">    mFlinger-&gt;postMessageSync(msg);<span class="comment">//通过消息队列的方式来处理请求，主要是因为sf是为多个应用服务的，用这样的方式便于处理多个请求。</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">static_cast</span>&lt;MessageCreateLayer*&gt;( msg.get() )-&gt;getResult();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在Client中createSurfac会通过请求参数构造一个MessageBase然后post到SurfaceFlinger的MessageQueue，最终事件会通过MessageBase的handleMessage进行处理，在handleMessage中调用了虚方法handler进行消息的处理。也就是MessageCreateLayer的handler进行处理。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> MessageBase::handleMessage(<span class="keyword">const</span> Message&amp;) &#123;</span><br><span class="line">    <span class="keyword">this</span>-&gt;handler();<span class="comment">//调用handler方法</span></span><br><span class="line">    barrier.open();</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>在MessageCreateLayer的handler中又会通过SurfaceFlinger的createLayout为客户端创建一个Layer，这个Layer即图层，它对应于应用端的Window。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">status_t</span> SurfaceFlinger::createLayer(</span><br><span class="line">    <span class="keyword">const</span> String8&amp; name,</span><br><span class="line">    <span class="keyword">const</span> sp&lt;Client&gt;&amp; client,</span><br><span class="line">    <span class="keyword">uint32_t</span> w, <span class="keyword">uint32_t</span> h, PixelFormat format, <span class="keyword">uint32_t</span> flags,</span><br><span class="line">    sp&lt;IBinder&gt;* handle, sp&lt;IGraphicBufferProducer&gt;* gbp)<span class="comment">//为客户端创建Layer</span></span><br><span class="line">&#123;</span><br><span class="line">    ……</span><br><span class="line">    sp&lt;Layer&gt; layer;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">switch</span> (flags &amp; ISurfaceComposerClient::eFXSurfaceMask) &#123;<span class="comment">//支持两种类型的Layer Normal和Dim</span></span><br><span class="line">        <span class="keyword">case</span> ISurfaceComposerClient::eFXSurfaceNormal:</span><br><span class="line">            result = createNormalLayer(client,</span><br><span class="line">                    name, w, h, flags, format,</span><br><span class="line">                    handle, gbp, &amp;layer);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> ISurfaceComposerClient::eFXSurfaceDim:</span><br><span class="line">            result = createDimLayer(client,</span><br><span class="line">                    name, w, h, flags,</span><br><span class="line">                    handle, gbp, &amp;layer);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            result = BAD_VALUE;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (result == NO_ERROR) &#123;</span><br><span class="line">        addClientLayer(client, *handle, *gbp, layer);<span class="comment">//将创建的Layer添加到用户的队列中</span></span><br><span class="line">        setTransactionFlags(eTransactionNeeded);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在SurfaceFlinger的createLayer中会根据flag来创建不同的layer，分别为Normal和Dim类型的，创建完layer后会将其添加到client中去。这里我们看下CreateNormalLayer的实现即可。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">status_t</span> SurfaceFlinger::createNormalLayer(<span class="keyword">const</span> sp&lt;Client&gt;&amp; client,</span><br><span class="line">        <span class="keyword">const</span> String8&amp; name, <span class="keyword">uint32_t</span> w, <span class="keyword">uint32_t</span> h, <span class="keyword">uint32_t</span> flags, PixelFormat&amp; format,</span><br><span class="line">        sp&lt;IBinder&gt;* handle, sp&lt;IGraphicBufferProducer&gt;* gbp, sp&lt;Layer&gt;* outLayer)<span class="comment">//创建Normal类型的Layer</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// initialize the surfaces</span></span><br><span class="line">    <span class="keyword">switch</span> (format) &#123;</span><br><span class="line">        <span class="keyword">case</span> PIXEL_FORMAT_TRANSPARENT:</span><br><span class="line">        <span class="keyword">case</span> PIXEL_FORMAT_TRANSLUCENT:</span><br><span class="line">            format = PIXEL_FORMAT_RGBA_8888;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> PIXEL_FORMAT_OPAQUE:</span><br><span class="line">    <span class="meta">#<span class="meta-keyword">ifdef</span> NO_RGBX_8888</span></span><br><span class="line">            format = PIXEL_FORMAT_RGB_565;</span><br><span class="line">    <span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">            format = PIXEL_FORMAT_RGBX_8888;</span><br><span class="line">    <span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> NO_RGBX_8888</span></span><br><span class="line">    <span class="keyword">if</span> (format == PIXEL_FORMAT_RGBX_8888)</span><br><span class="line">        format = PIXEL_FORMAT_RGBA_8888;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">    *outLayer = <span class="keyword">new</span> Layer(<span class="keyword">this</span>, client, name, w, h, flags);<span class="comment">//创建Layouer 在第一次引用该Layer时会创建其BufferQueue和Consumer</span></span><br><span class="line">    <span class="keyword">status_t</span> err = (*outLayer)-&gt;setBuffers(w, h, format, flags);<span class="comment">//设置layer大小和格式</span></span><br><span class="line">    <span class="keyword">if</span> (err == NO_ERROR) &#123;</span><br><span class="line">        *handle = (*outLayer)-&gt;getHandle();</span><br><span class="line">        *gbp = (*outLayer)-&gt;getBufferQueue();<span class="comment">//获取Layer对应的BufferQueue</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> err;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>创建Layer的实例后就可以通过getBufferQueue获取到layer内部的BufferQueue，这个BufferQueue是个Binder Server,它是一个缓冲队列，用来维护layer的缓冲区。它是在Layer的onFirstRef中创建的，我们缓冲区的分配在SurfaceFligner端实际实际上就是通过它来分配的。同时，它既是缓冲区的消费者又是生产者，对于应用端来说，它扮演生产者的角色，因为应用端是填充数据的一方，而对于surfaceFligner来说它又扮演消费者的角色，因为SurfaceFlinger是合成layer层，取出缓冲区进行显示的。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> Layer::onFirstRef() &#123;<span class="comment">//在第一次引用时创建一个bufferqueue</span></span><br><span class="line">    <span class="comment">// Creates a custom BufferQueue for SurfaceFlingerConsumer to use</span></span><br><span class="line">    mBufferQueue = <span class="keyword">new</span> SurfaceTextureLayer(mFlinger);<span class="comment">//创建一个BufferQueue用于管理Layer的图形缓冲区</span></span><br><span class="line">    ……  </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SurfaceTextureLayer</span> :</span> <span class="keyword">public</span> BufferQueue &#123;<span class="comment">//父类是BufferQueue</span></span><br><span class="line">    sp&lt;SurfaceFlinger&gt; flinger;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    SurfaceTextureLayer(<span class="keyword">const</span> sp&lt;SurfaceFlinger&gt;&amp; flinger);</span><br><span class="line">    <span class="keyword">virtual</span> ~SurfaceTextureLayer();</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>这里的SurfaceTextureLayer它实际上就是个BufferQueue。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">sp&lt;SurfaceControl&gt; SurfaceComposerClient::createSurface(</span><br><span class="line">        const String8&amp; name,</span><br><span class="line">        uint32_t w,</span><br><span class="line">        uint32_t h,</span><br><span class="line">        PixelFormat format,</span><br><span class="line">        uint32_t flags)</span><br><span class="line">&#123;</span><br><span class="line">    sp&lt;SurfaceControl&gt; sur;</span><br><span class="line">    if (mStatus == NO_ERROR) &#123;</span><br><span class="line">        sp&lt;IBinder&gt; handle;</span><br><span class="line">        sp&lt;IGraphicBufferProducer&gt; gbp;</span><br><span class="line">        status_t err = mClient-&gt;createSurface(name, w, h, format, flags,</span><br><span class="line">                &amp;handle, &amp;gbp);//在Client服务端创建相应的Layer</span><br><span class="line">        ALOGE_IF(err, &quot;SurfaceComposerClient::createSurface error %s&quot;, strerror(-err));</span><br><span class="line">        if (err == NO_ERROR) &#123;</span><br><span class="line">            sur = new SurfaceControl(this, handle, gbp);//同时创建一个SurfaceControl，这个gbp即是对应Layer的BufferQueue</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    return sur;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们创建好layer后通过getBufferQueue后是以IGraphicBufferProducer的角色返回的，它代表了这个BufferQueue将作为一个生产者供应用端使用。紧接着在本地创建一个SurfaceControl<br>
+需要注意这个时候gbd是在我们的应用进程中了，它是BufferQueue的本地代理binder对象了。<br>
+我们通过这个代理对象来创建SurfaceControl。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">SurfaceControl::SurfaceControl(</span><br><span class="line">        <span class="keyword">const</span> sp&lt;SurfaceComposerClient&gt;&amp; client,</span><br><span class="line">        <span class="keyword">const</span> sp&lt;IBinder&gt;&amp; handle,</span><br><span class="line">        <span class="keyword">const</span> sp&lt;IGraphicBufferProducer&gt;&amp; gbp)</span><br><span class="line">    : mClient(client), mHandle(handle), mGraphicBufferProducer(gbp)</span><br><span class="line">&#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里我们创建好本地的SurfaceControl，然后保存在java层的SurfaceControl的mNativeObject中。但是这个时候好像并没有真正去分配缓冲区，那么创建这个SurfaceControl给上层到底是干嘛用的？没错，就是用来分配缓冲区的，因为它内部这时候是有一个IGraphicBufferProducer的，它是layer中的BufferQueue代理binder。</p>
+<p>在WMS的relayoutWindow中创建完SurfaceControl后，会通过Surface的copyFrom来初始化它，在这之前Surface还是个空壳。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Surface</span> <span class="keyword">implements</span> <span class="title">Parcelable</span> </span>&#123;</span><br><span class="line">    ……</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">copyFrom</span><span class="params">(SurfaceControl other)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (other == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"other must not be null"</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">int</span> surfaceControlPtr = other.mNativeObject;<span class="comment">//取到指向SurfaceControl的本地对象指针</span></span><br><span class="line">        <span class="keyword">if</span> (surfaceControlPtr == <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException(</span><br><span class="line">                    <span class="string">"SurfaceControl native object is null. Are you using a released SurfaceControl?"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">int</span> newNativeObject = nativeCreateFromSurfaceControl(surfaceControlPtr);<span class="comment">//通过SurfaceControl来创建新的Surface</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">synchronized</span> (mLock) &#123;</span><br><span class="line">            <span class="keyword">if</span> (mNativeObject != <span class="number">0</span>) &#123;</span><br><span class="line">                nativeRelease(mNativeObject);</span><br><span class="line">            &#125;</span><br><span class="line">            setNativeObjectLocked(newNativeObject);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>java层的Surface是通过nativeCreateFromSurfaceControl，并将native层的SurfaceControl对象指针传递给它。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> jint <span class="title">nativeCreateFromSurfaceControl</span><span class="params">(JNIEnv* env, jclass clazz,</span></span></span><br><span class="line"><span class="function"><span class="params">        jint surfaceControlNativeObj)</span> </span>&#123;</span><br><span class="line">    sp&lt;SurfaceControl&gt; ctrl(<span class="keyword">reinterpret_cast</span>&lt;SurfaceControl *&gt;(surfaceControlNativeObj));</span><br><span class="line">    sp&lt;Surface&gt; surface(ctrl-&gt;getSurface());<span class="comment">//返回surfacecontrol管理的surface</span></span><br><span class="line">    <span class="keyword">if</span> (surface != <span class="literal">NULL</span>) &#123;</span><br><span class="line">        surface-&gt;incStrong(&amp;sRefBaseOwner);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">reinterpret_cast</span>&lt;jint&gt;(surface.get());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过native层的SurfaceControl指针，可以通过getSurface获取到一个Surface。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">sp&lt;Surface&gt; SurfaceControl::getSurface() <span class="keyword">const</span><span class="comment">//获取内部持有的Surface</span></span><br><span class="line">&#123;</span><br><span class="line">    Mutex::Autolock _l(mLock);</span><br><span class="line">    <span class="keyword">if</span> (mSurfaceData == <span class="number">0</span>) &#123;<span class="comment">//第一次为空时创建</span></span><br><span class="line">        <span class="comment">// This surface is always consumed by SurfaceFlinger, so the</span></span><br><span class="line">        <span class="comment">// producerControlledByApp value doesn't matter; using false.</span></span><br><span class="line">        mSurfaceData = <span class="keyword">new</span> Surface(mGraphicBufferProducer, <span class="literal">false</span>);<span class="comment">//这个surface是sf中消费的。</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> mSurfaceData;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">setNativeObjectLocked</span><span class="params">(<span class="keyword">int</span> ptr)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mNativeObject != ptr) &#123;</span><br><span class="line">        <span class="keyword">if</span> (mNativeObject == <span class="number">0</span> &amp;&amp; ptr != <span class="number">0</span>) &#123;</span><br><span class="line">            mCloseGuard.open(<span class="string">"release"</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (mNativeObject != <span class="number">0</span> &amp;&amp; ptr == <span class="number">0</span>) &#123;</span><br><span class="line">            mCloseGuard.close();</span><br><span class="line">        &#125;</span><br><span class="line">        mNativeObject = ptr;</span><br><span class="line">        mGenerationId += <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>SurfaceControl 并不直接去分配缓冲区，而是通过管理一个本地Surface对象来管理缓冲区，它通过mGraphicBufferProducer构造，这个就是之前我们取到的IGraphicBufferProducer binder代理对象，构造的本地Surface最终会通过setNativeObjectLocked<br>
+保存在java层Surface的mNativeObject中。到这里java层的Surface就算创建完了，最终返回给ViewRootImpl使用。</p>
+<h3 id="surface的使用"><a class="markdownIt-Anchor" href="#surface的使用"></a> Surface的使用</h3>
+<h4 id="从surface中取缓冲区"><a class="markdownIt-Anchor" href="#从surface中取缓冲区"></a> 从Surface中取缓冲区</h4>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">boolean</span> <span class="title">drawSoftware</span><span class="params">(Surface surface, AttachInfo attachInfo, <span class="keyword">int</span> yoff,</span></span></span><br><span class="line"><span class="function"><span class="params">            <span class="keyword">boolean</span> scalingRequired, Rect dirty)</span> </span>&#123;</span><br><span class="line">    Canvas canvas;</span><br><span class="line">    ……</span><br><span class="line">    canvas = mSurface.lockCanvas(dirty);</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ……</span><br><span class="line">        mView.draw(canvas);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            surface.unlockCanvasAndPost(canvas);</span><br><span class="line">        &#125; </span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Surface首先通过lockCanvas获取到一个Canvas对象，这个Canvas实际上为就是通过Surface的缓冲区填充的画布。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Canvas <span class="title">lockCanvas</span><span class="params">(Rect inOutDirty)</span></span></span><br><span class="line"><span class="function">            <span class="keyword">throws</span> Surface.OutOfResourcesException, IllegalArgumentException </span>&#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (mLock) &#123;</span><br><span class="line">        ……</span><br><span class="line">        mLockedObject = nativeLockCanvas(mNativeObject, mCanvas, inOutDirty);</span><br><span class="line">        <span class="keyword">return</span> mCanvas;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//jni层的surface lockCanvas调用</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> jint <span class="title">nativeLockCanvas</span><span class="params">(JNIEnv* env, jclass clazz,</span></span></span><br><span class="line"><span class="function"><span class="params">        jint nativeObject, jobject canvasObj, jobject dirtyRectObj)</span> </span>&#123;</span><br><span class="line">    <span class="function">sp&lt;Surface&gt; <span class="title">surface</span><span class="params">(reinterpret_cast&lt;Surface *&gt;(nativeObject)</span>)</span>;<span class="comment">//这个surface由surfaceControl创建的</span></span><br><span class="line">    <span class="keyword">if</span> (!isSurfaceValid(surface)) &#123;</span><br><span class="line">        doThrowIAE(env);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Rect dirtyRect;</span><br><span class="line">    Rect* dirtyRectPtr = NULL;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (dirtyRectObj) &#123;</span><br><span class="line">        dirtyRect.left   = env-&gt;GetIntField(dirtyRectObj, gRectClassInfo.left);</span><br><span class="line">        dirtyRect.top    = env-&gt;GetIntField(dirtyRectObj, gRectClassInfo.top);</span><br><span class="line">        dirtyRect.right  = env-&gt;GetIntField(dirtyRectObj, gRectClassInfo.right);</span><br><span class="line">        dirtyRect.bottom = env-&gt;GetIntField(dirtyRectObj, gRectClassInfo.bottom);</span><br><span class="line">        dirtyRectPtr = &amp;dirtyRect;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ANativeWindow_Buffer outBuffer;<span class="comment">//ANativeWindow_Buffer定义在native_window.h中</span></span><br><span class="line">    status_t err = surface-&gt;lock(&amp;outBuffer, dirtyRectPtr);</span><br><span class="line">    <span class="keyword">if</span> (err &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> <span class="keyword">char</span>* <span class="keyword">const</span> exception = (err == NO_MEMORY) ?</span><br><span class="line">                OutOfResourcesException :</span><br><span class="line">                <span class="string">"java/lang/IllegalArgumentException"</span>;</span><br><span class="line">        jniThrowException(env, exception, NULL);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Associate a SkCanvas object to this surface</span></span><br><span class="line">    env-&gt;SetIntField(canvasObj, gCanvasClassInfo.mSurfaceFormat, outBuffer.format);<span class="comment">//将skCanvas是关联到surface</span></span><br><span class="line">    SkBitmap bitmap;<span class="comment">//准备画布</span></span><br><span class="line">    ssize_t bpr = outBuffer.stride * bytesPerPixel(outBuffer.format);</span><br><span class="line">    bitmap.setConfig(convertPixelFormat(outBuffer.format), outBuffer.width, outBuffer.height, bpr);<span class="comment">//设置画布大小及格式</span></span><br><span class="line">    <span class="keyword">if</span> (outBuffer.format == PIXEL_FORMAT_RGBX_8888) &#123;</span><br><span class="line">        bitmap.setAlphaType(kOpaque_SkAlphaType);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (outBuffer.width &gt; <span class="number">0</span> &amp;&amp; outBuffer.height &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        bitmap.setPixels(outBuffer.bits);<span class="comment">//给画布设置缓冲区</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// be safe with an empty bitmap.</span></span><br><span class="line">        bitmap.setPixels(NULL);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    SkCanvas* nativeCanvas = SkNEW_ARGS(SkCanvas, (bitmap));<span class="comment">//将画布作为native的Canvase返回给上层使用</span></span><br><span class="line">    swapCanvasPtr(env, canvasObj, nativeCanvas);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (dirtyRectPtr) &#123;</span><br><span class="line">        nativeCanvas-&gt;clipRect( SkRect::Make(reinterpret_cast&lt;<span class="keyword">const</span> SkIRect&amp;&gt;(dirtyRect)) );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (dirtyRectObj) &#123;</span><br><span class="line">        env-&gt;SetIntField(dirtyRectObj, gRectClassInfo.left,   dirtyRect.left);</span><br><span class="line">        env-&gt;SetIntField(dirtyRectObj, gRectClassInfo.top,    dirtyRect.top);</span><br><span class="line">        env-&gt;SetIntField(dirtyRectObj, gRectClassInfo.right,  dirtyRect.right);</span><br><span class="line">        env-&gt;SetIntField(dirtyRectObj, gRectClassInfo.bottom, dirtyRect.bottom);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function">sp&lt;Surface&gt; <span class="title">lockedSurface</span><span class="params">(surface)</span></span>;</span><br><span class="line">    lockedSurface-&gt;incStrong(&amp;sRefBaseOwner);</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">int</span>) lockedSurface.get();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Surface的localCanvas是通过nativeLockCanvas,首先通过mNativeObject取到本地的Surface对象，通过这个本地的Surface进行lock取到缓冲区outBuffer，它是一个ANativeWindow_Buffer，随后通过这个缓冲区初始化一个SkBitmap画布，并设置其格式大小等，通过SkBitmap创建一个SkCanvas返回给java层Surface的mCanvas，我们在Draw方法中使用的Canvas就是这个SkCanvas.</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">status_t</span> Surface::lock(</span><br><span class="line">        ANativeWindow_Buffer* outBuffer, ARect* inOutDirtyBounds)</span><br><span class="line">&#123;</span><br><span class="line">    ……</span><br><span class="line">    ANativeWindowBuffer* out;<span class="comment">// 定义在window.h</span></span><br><span class="line">    <span class="keyword">int</span> fenceFd = <span class="number">-1</span>;</span><br><span class="line">    <span class="keyword">status_t</span> err = dequeueBuffer(&amp;out, &amp;fenceFd);<span class="comment">//分配缓冲区</span></span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//申请图形缓冲区</span></span><br><span class="line"><span class="keyword">int</span> Surface::dequeueBuffer(<span class="keyword">android_native_buffer_t</span>** buffer, <span class="keyword">int</span>* fenceFd) &#123;</span><br><span class="line">    ATRACE_CALL();</span><br><span class="line">    Mutex::<span class="function">Autolock <span class="title">lock</span><span class="params">(mMutex)</span></span>;</span><br><span class="line">    <span class="keyword">int</span> buf = <span class="number">-1</span>;</span><br><span class="line">    <span class="keyword">int</span> reqW = mReqWidth ? mReqWidth : mUserWidth;</span><br><span class="line">    <span class="keyword">int</span> reqH = mReqHeight ? mReqHeight : mUserHeight;</span><br><span class="line">    ……</span><br><span class="line">    sp&lt;Fence&gt; fence;</span><br><span class="line">    <span class="keyword">status_t</span> result = mGraphicBufferProducer-&gt;dequeueBuffer(&amp;buf, &amp;fence, mSwapIntervalZero,</span><br><span class="line">            reqW, reqH, mReqFormat, mReqUsage);</span><br><span class="line">    ……</span><br><span class="line">    sp&lt;GraphicBuffer&gt;&amp; gbuf(mSlots[buf].buffer);</span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">if</span> ((result &amp; IGraphicBufferProducer::BUFFER_NEEDS_REALLOCATION) || gbuf == <span class="number">0</span>) &#123;<span class="comment">//未分配 或者需要重新映射</span></span><br><span class="line">        result = mGraphicBufferProducer-&gt;requestBuffer(buf, &amp;gbuf);<span class="comment">//Surface通过调用 requestBuffer将图形缓冲区映射到Surface所在进程</span></span><br><span class="line">        <span class="keyword">if</span> (result != NO_ERROR) &#123;</span><br><span class="line">            ALOGE(<span class="string">"dequeueBuffer: IGraphicBufferProducer::requestBuffer failed: %d"</span>, result);</span><br><span class="line">            <span class="keyword">return</span> result;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">    *buffer = gbuf.get();<span class="comment">//获取缓冲区</span></span><br><span class="line">    <span class="keyword">return</span> OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>首先通过mGraphicBufferProducer通过dequeueBuffer分配缓冲区，实际是由BufferQueue完成的，它实际上是取到BufferQueue中BufferSlot槽的索引buf，有了这个索引，通过requestBuffer就真正的创建buffer并将该buffer映射到Surface所在进程。这样我们的应用程序就可以使用了。</p>
+<h4 id="提交绘制好的缓冲区"><a class="markdownIt-Anchor" href="#提交绘制好的缓冲区"></a> 提交绘制好的缓冲区</h4>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">unlockCanvasAndPost</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">synchronized</span> (mLock) &#123;</span><br><span class="line">        ……</span><br><span class="line">        nativeUnlockCanvasAndPost(mLockedObject, canvas);</span><br><span class="line">        nativeRelease(mLockedObject);</span><br><span class="line">        mLockedObject = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同样的应用层绘制完后，需要将该缓冲区unlock并且提交给BufferQueue。这个是通过nativeUnlockCanvasAndPost进行的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">nativeUnlockCanvasAndPost</span><span class="params">(JNIEnv* env, jclass clazz,</span></span></span><br><span class="line"><span class="function"><span class="params">        jint nativeObject, jobject canvasObj)</span> </span>&#123;</span><br><span class="line">    <span class="function">sp&lt;Surface&gt; <span class="title">surface</span><span class="params">(reinterpret_cast&lt;Surface *&gt;(nativeObject)</span>)</span>;</span><br><span class="line">    <span class="keyword">if</span> (!isSurfaceValid(surface)) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// detach the canvas from the surface</span></span><br><span class="line">    SkCanvas* nativeCanvas = SkNEW(SkCanvas);</span><br><span class="line">    swapCanvasPtr(env, canvasObj, nativeCanvas);<span class="comment">//把canvas从surface分离</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// unlock surface</span></span><br><span class="line">    status_t err = surface-&gt;unlockAndPost();<span class="comment">//提交结果</span></span><br><span class="line">    <span class="keyword">if</span> (err &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        doThrowIAE(env);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">status_t</span> Surface::unlockAndPost()<span class="comment">//提交Locked的Buffer</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (mLockedBuffer == <span class="number">0</span>) &#123;</span><br><span class="line">        ALOGE(<span class="string">"Surface::unlockAndPost failed, no locked buffer"</span>);</span><br><span class="line">        <span class="keyword">return</span> INVALID_OPERATION;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">status_t</span> err = mLockedBuffer-&gt;unlock();</span><br><span class="line">    err = queueBuffer(mLockedBuffer.get(), <span class="number">-1</span>);<span class="comment">//将该Buffer queue</span></span><br><span class="line">    mPostedBuffer = mLockedBuffer;<span class="comment">//locked的buffer变为posted</span></span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">return</span> err;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Surfae的unlockAndPost调用queueBuffer方法完成buffer的提交</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> Surface::queueBuffer(<span class="keyword">android_native_buffer_t</span>* buffer, <span class="keyword">int</span> fenceFd) &#123;<span class="comment">//buffer queue进行消费</span></span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">status_t</span> err = mGraphicBufferProducer-&gt;queueBuffer(i, input, &amp;output);<span class="comment">//通过调用GBP的</span></span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">return</span> err;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过mGraphicBufferProducer入队这个buffer，此时生产者的任务完毕，layer端的Consumer即SurfaceFlinger会监听到这个有效的缓冲区，然后准备合成显示layer，最终将绘制的东西显示在屏幕上。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpayimg.png" alt="esli 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipayimg.png" alt="esli 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Android/" rel="tag"># Android</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/[object Object]/aosp-performtraversal-src/" rel="next" title="View绘制流程分析">
+                <i class="fa fa-chevron-left"></i> View绘制流程分析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/[object Object]/aosp-invalidate-src/" rel="prev" title="View invalidate的源码分析">
+                View invalidate的源码分析 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/uploads/avatar.png"
+                alt="esli" />
+            
+              <p class="site-author-name" itemprop="name">esli</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">61</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#activity结构剖析"><span class="nav-number">1.</span> <span class="nav-text"> Activity结构剖析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#画布的分配"><span class="nav-number">2.</span> <span class="nav-text"> 画布的分配</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#surface的使用"><span class="nav-number">3.</span> <span class="nav-text"> Surface的使用</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#从surface中取缓冲区"><span class="nav-number">3.1.</span> <span class="nav-text"> 从Surface中取缓冲区</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#提交绘制好的缓冲区"><span class="nav-number">3.2.</span> <span class="nav-text"> 提交绘制好的缓冲区</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">esli</span>
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("jBNLE1XrpdNfIpNnvp02BNFi-gzGzoHsz", "1KETbc2T1LA8C2oPKVwpbzVm");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

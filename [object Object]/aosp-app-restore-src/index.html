@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Android," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="LowMemoryKiller机制 Android的LowMemoryKiller(lmk)机制是一种内存回收机制，它根据当前系统的内存阈值以及进程的优先级来决定杀掉哪些进程。LowMemoryKiller会周期性的检查当前系统的可用内存，当系统剩余的可用内存较低时，便会触发进程杀掉进程的策略。它根据不同的内存阈值来决定杀掉相应优先级的进程。 Android的LowMemoryKiller机制是">
+<meta name="keywords" content="Android">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Android应用杀死和恢复的流程">
+<meta property="og:url" content="http://esligh.github.io/[object Object]/aosp-app-restore-src/index.html">
+<meta property="og:site_name" content="esli&#39;s Blog">
+<meta property="og:description" content="LowMemoryKiller机制 Android的LowMemoryKiller(lmk)机制是一种内存回收机制，它根据当前系统的内存阈值以及进程的优先级来决定杀掉哪些进程。LowMemoryKiller会周期性的检查当前系统的可用内存，当系统剩余的可用内存较低时，便会触发进程杀掉进程的策略。它根据不同的内存阈值来决定杀掉相应优先级的进程。 Android的LowMemoryKiller机制是">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-03-16T08:03:09.833Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Android应用杀死和恢复的流程">
+<meta name="twitter:description" content="LowMemoryKiller机制 Android的LowMemoryKiller(lmk)机制是一种内存回收机制，它根据当前系统的内存阈值以及进程的优先级来决定杀掉哪些进程。LowMemoryKiller会周期性的检查当前系统的可用内存，当系统剩余的可用内存较低时，便会触发进程杀掉进程的策略。它根据不同的内存阈值来决定杀掉相应优先级的进程。 Android的LowMemoryKiller机制是">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://esligh.github.io/[object Object]/aosp-app-restore-src/"/>
+
+
+
+
+
+  <title>Android应用杀死和恢复的流程 | esli's Blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">esli's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">day day up</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://esligh.github.io/[object Object]/aosp-app-restore-src/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="esli">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="esli's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Android应用杀死和恢复的流程</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-10-11T21:32:27+08:00">
+                2017-10-11
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AOSP/" itemprop="url" rel="index">
+                    <span itemprop="name">AOSP</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+             <span id="/[object Object]/aosp-app-restore-src/" class="leancloud_visitors" data-flag-title="Android应用杀死和恢复的流程">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="lowmemorykiller机制"><a class="markdownIt-Anchor" href="#lowmemorykiller机制"></a> LowMemoryKiller机制</h3>
+<p>Android的LowMemoryKiller(lmk)机制是一种内存回收机制，它根据当前系统的内存阈值以及进程的优先级来决定杀掉哪些进程。LowMemoryKiller会周期性的检查当前系统的可用内存，当系统剩余的可用内存较低时，便会触发进程杀掉进程的策略。它根据不同的内存阈值来决定杀掉相应优先级的进程。</p>
+<p>Android的LowMemoryKiller机制是基于Linux的OOM Killer机制修改而来，在KK版本中，LMK机制和策略都是在内核空间驱动中实现的，在L版本中LowMemeoryKiller做了一些调整改动，但总体的思想还是一样的。</p>
+<h4 id="kernel层的实现"><a class="markdownIt-Anchor" href="#kernel层的实现"></a> Kernel层的实现</h4>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// kernel/drivers/staging/android/lowmemorykiller.c</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">uint32_t</span> lowmem_debug_level = <span class="number">2</span>;</span><br><span class="line"><span class="comment">//低内存阈值对应的优先级，这个值越低就优先级越高</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> lowmem_adj[<span class="number">6</span>] = &#123;</span><br><span class="line">	<span class="number">0</span>,</span><br><span class="line">	<span class="number">1</span>,</span><br><span class="line">	<span class="number">6</span>,</span><br><span class="line">	<span class="number">12</span>,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> lowmem_adj_size = <span class="number">4</span>;</span><br><span class="line"><span class="comment">//低内存的阈值</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">size_t</span> lowmem_minfree[<span class="number">6</span>] = &#123;</span><br><span class="line">	<span class="number">3</span> * <span class="number">512</span>,	<span class="comment">/* 6MB */</span></span><br><span class="line">	<span class="number">2</span> * <span class="number">1024</span>,	<span class="comment">/* 8MB */</span></span><br><span class="line">	<span class="number">4</span> * <span class="number">1024</span>,	<span class="comment">/* 16MB */</span></span><br><span class="line">	<span class="number">16</span> * <span class="number">1024</span>,	<span class="comment">/* 64MB */</span></span><br><span class="line">&#125;;</span><br><span class="line"><span class="comment">//当系统可用的内存小于某一低内存阈值时，lowmemoryKiller会去比对应优先级低的进程，</span></span><br><span class="line"><span class="comment">//比如：当系统可用内存低于64MB时会去杀掉优先级低于12的进程</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> lowmem_minfree_size = <span class="number">4</span>;</span><br><span class="line">……</span><br></pre></td></tr></table></figure>
+<p>在lowmemorykiller中定义了两个数组分别是lowmem_infree和lowmem_adj，它们分别是用来描述当前系统的低内存阈值以及低内存阈值对应的进程优先级，lmk正是基于这个优先级来决定是否杀掉当前进程。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> __<span class="function">init <span class="title">lowmem_init</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	task_free_register(&amp;task_nb);</span><br><span class="line">	register_shrinker(&amp;lowmem_shrinker);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __<span class="function"><span class="built_in">exit</span> <span class="title">lowmem_exit</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	unregister_shrinker(&amp;lowmem_shrinker);</span><br><span class="line">	task_free_unregister(&amp;task_nb);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">module_init(lowmem_init);</span><br><span class="line">module_exit(lowmem_exit);</span><br></pre></td></tr></table></figure>
+<p>lmk将自己的lowmem_shrink方法诸恶到系统的内存检测模块中，作用就是在内存不足的时候可以被回调，register_shrinker函数是一属于另一个内存管理模块的函数。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//内存检测模块检测到内存不足时调用，在这个方法里面会去查找低优先级的进程</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">lowmem_shrink</span><span class="params">(struct shrinker *s, struct shrink_control *sc)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> *<span class="title">p</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> *<span class="title">selected</span> = <span class="title">NULL</span>;</span></span><br><span class="line">	<span class="keyword">int</span> rem = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">int</span> tasksize;</span><br><span class="line">	<span class="keyword">int</span> i;</span><br><span class="line">	<span class="keyword">int</span> min_adj = OOM_ADJUST_MAX + <span class="number">1</span>;<span class="comment">//初始化为最低优先级</span></span><br><span class="line">	<span class="keyword">int</span> selected_tasksize = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">int</span> selected_oom_adj;</span><br><span class="line">	<span class="keyword">int</span> array_size = ARRAY_SIZE(lowmem_adj);</span><br><span class="line">	<span class="comment">//1. 获取剩余内存大小</span></span><br><span class="line">	<span class="keyword">int</span> other_free = global_page_state(NR_FREE_PAGES);</span><br><span class="line">	<span class="keyword">int</span> other_file = global_page_state(NR_FILE_PAGES) -</span><br><span class="line">						global_page_state(NR_SHMEM);</span><br><span class="line"></span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span> (lowmem_deathpending &amp;&amp;</span><br><span class="line">	    time_before_eq(jiffies, lowmem_deathpending_timeout))</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//调整两个数组的大小描述</span></span><br><span class="line">	<span class="keyword">if</span> (lowmem_adj_size &lt; array_size)</span><br><span class="line">		array_size = lowmem_adj_size;<span class="comment">//4</span></span><br><span class="line">	<span class="keyword">if</span> (lowmem_minfree_size &lt; array_size)</span><br><span class="line">		array_size = lowmem_minfree_size;<span class="comment">//4</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">//2. 找到当前的内存对应的阈值</span></span><br><span class="line">	<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; array_size; i++) &#123;</span><br><span class="line">		<span class="keyword">if</span> (other_free &lt; lowmem_minfree[i] &amp;&amp;</span><br><span class="line">		    other_file &lt; lowmem_minfree[i]) &#123;</span><br><span class="line">			min_adj = lowmem_adj[i];<span class="comment">//尽量找到最小内存阈值对应的优先级</span></span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (sc-&gt;nr_to_scan &gt; <span class="number">0</span>)</span><br><span class="line">		lowmem_print(<span class="number">3</span>, <span class="string">"lowmem_shrink %lu, %x, ofree %d %d, ma %d\n"</span>,</span><br><span class="line">			     sc-&gt;nr_to_scan, sc-&gt;gfp_mask, other_free, other_file,</span><br><span class="line">			     min_adj);</span><br><span class="line">	rem = global_page_state(NR_ACTIVE_ANON) +</span><br><span class="line">		global_page_state(NR_ACTIVE_FILE) +</span><br><span class="line">		global_page_state(NR_INACTIVE_ANON) +</span><br><span class="line">		global_page_state(NR_INACTIVE_FILE);</span><br><span class="line">	<span class="keyword">if</span> (sc-&gt;nr_to_scan &lt;= <span class="number">0</span> || min_adj == OOM_ADJUST_MAX + <span class="number">1</span>) &#123;</span><br><span class="line">		lowmem_print(<span class="number">5</span>, <span class="string">"lowmem_shrink %lu, %x, return %d\n"</span>,</span><br><span class="line">			     sc-&gt;nr_to_scan, sc-&gt;gfp_mask, rem);</span><br><span class="line">		<span class="keyword">return</span> rem;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//这里的min_adj即我们计算得到优先级，低于该优先级的进程都有可能被杀掉</span></span><br><span class="line">	selected_oom_adj = min_adj;</span><br><span class="line">	<span class="comment">//3. 找到优先级低于这个阈值的进程，并杀死</span></span><br><span class="line">	read_lock(&amp;tasklist_lock);</span><br><span class="line">	for_each_process(p) &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">mm_struct</span> *<span class="title">mm</span>;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">signal_struct</span> *<span class="title">sig</span>;</span></span><br><span class="line">		<span class="keyword">int</span> oom_adj;</span><br><span class="line"></span><br><span class="line">		task_lock(p);</span><br><span class="line">		mm = p-&gt;mm;</span><br><span class="line">		sig = p-&gt;signal;</span><br><span class="line">		<span class="keyword">if</span> (!mm || !sig) &#123;</span><br><span class="line">			task_unlock(p);</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		oom_adj = sig-&gt;oom_adj;</span><br><span class="line">		<span class="keyword">if</span> (oom_adj &lt; min_adj) &#123;</span><br><span class="line">			task_unlock(p);</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		tasksize = get_mm_rss(mm);</span><br><span class="line">		task_unlock(p);</span><br><span class="line">		<span class="keyword">if</span> (tasksize &lt;= <span class="number">0</span>)</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		<span class="keyword">if</span> (selected) &#123;</span><br><span class="line">			<span class="keyword">if</span> (oom_adj &lt; selected_oom_adj)<span class="comment">//优先级大于selected_oom_adj的进程 就不做处理</span></span><br><span class="line">				<span class="keyword">continue</span>;</span><br><span class="line">			<span class="keyword">if</span> (oom_adj == selected_oom_adj &amp;&amp;</span><br><span class="line">			    tasksize &lt;= selected_tasksize)</span><br><span class="line">				<span class="keyword">continue</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		selected = p;</span><br><span class="line">		selected_tasksize = tasksize;</span><br><span class="line">		selected_oom_adj = oom_adj;</span><br><span class="line">		lowmem_print(<span class="number">2</span>, <span class="string">"select %d (%s), adj %d, size %d, to kill\n"</span>,</span><br><span class="line">			     p-&gt;pid, p-&gt;comm, oom_adj, tasksize);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (selected) &#123;</span><br><span class="line">		lowmem_print(<span class="number">1</span>, <span class="string">"send sigkill to %d (%s), adj %d, size %d\n"</span>,</span><br><span class="line">			     selected-&gt;pid, selected-&gt;comm,</span><br><span class="line">			     selected_oom_adj, selected_tasksize);</span><br><span class="line">		lowmem_deathpending = selected;</span><br><span class="line">		lowmem_deathpending_timeout = jiffies + HZ;</span><br><span class="line">		force_sig(SIGKILL, selected);<span class="comment">//杀死这个进程</span></span><br><span class="line">		rem -= selected_tasksize;</span><br><span class="line">	&#125;</span><br><span class="line">	lowmem_print(<span class="number">4</span>, <span class="string">"lowmem_shrink %lu, %x, return %d\n"</span>,</span><br><span class="line">		     sc-&gt;nr_to_scan, sc-&gt;gfp_mask, rem);</span><br><span class="line">	read_unlock(&amp;tasklist_lock);</span><br><span class="line">	<span class="keyword">return</span> rem;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>lowmem_shrink是lmk的核心处理方法，它的逻辑比较简单，首先通过global_page_state得到当前系统可用的空闲内存大小，随后根据该空闲内存的大小找到相应的内存阈值对应的进程优先级并将其赋值给selected_oom_adj，低于该优先级的进程都有可能被lmk杀掉。for_each_process遍历进程列表，然后找出进程优先级最低的进程通过fore_sig选择杀死进程。</p>
+<h3 id="应用恢复机制"><a class="markdownIt-Anchor" href="#应用恢复机制"></a> 应用恢复机制</h3>
+<p>Android应用的恢复是通过AMS来进行的。那么AMS恢复的过程是如何的呢？AMS是怎么知道应用被杀掉的？</p>
+<p>LowMemoryKiller杀死应用后并不会通知应用层，也不通知AMS，但是我们知道AMS和应用端的通信是基于Binder机制的，别忘了Binder是由卟告功能的，Binder Client通过linkToDeath注册接收该卟告。当Binder Server端死亡后会通过它来告知客户端。这里的Binder Server就是IApplicationThread，这个对象是在ActivityThread中创建的，用于AMS和客户端进行通信的，AMS就是通过它来告诉Activity执行一系列的回调方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//应用创建完application后attach IApplicationThread 到AMS</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">attachApplication</span><span class="params">(IApplicationThread thread)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">        <span class="keyword">int</span> callingPid = Binder.getCallingPid();</span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> origId = Binder.clearCallingIdentity();</span><br><span class="line">        attachApplicationLocked(thread, callingPid);</span><br><span class="line">        Binder.restoreCallingIdentity(origId);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">attachApplicationLocked</span><span class="params">(IApplicationThread thread,</span></span></span><br><span class="line"><span class="function"><span class="params">    <span class="keyword">int</span> pid)</span> </span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        AppDeathRecipient adr = <span class="keyword">new</span> AppDeathRecipient(</span><br><span class="line">                app, pid, thread);</span><br><span class="line">        thread.asBinder().linkToDeath(adr, <span class="number">0</span>);<span class="comment">//应用端binder的卟告 这样当应用被异常杀死后AMS可以得知</span></span><br><span class="line">        app.deathRecipient = adr;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">        app.resetPackageList(mProcessStats);</span><br><span class="line">        startProcessLocked(app, <span class="string">"link fail"</span>, processName);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//应用端死亡卟告接收者 它是通过binder来实现的，binder服务端在异常终止时客户端会收到一份卟告</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">AppDeathRecipient</span> <span class="keyword">implements</span> <span class="title">IBinder</span>.<span class="title">DeathRecipient</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> ProcessRecord mApp;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> mPid;</span><br><span class="line">    <span class="keyword">final</span> IApplicationThread mAppThread;<span class="comment">//这即是客户端的Binder实体，应用端被杀死后，binder驱动会发送该binder实体的卟告</span></span><br><span class="line"></span><br><span class="line">    AppDeathRecipient(ProcessRecord app, <span class="keyword">int</span> pid,</span><br><span class="line">            IApplicationThread thread) &#123;</span><br><span class="line">        <span class="keyword">if</span> (localLOGV) Slog.v(</span><br><span class="line">            TAG, <span class="string">"New death recipient "</span> + <span class="keyword">this</span></span><br><span class="line">            + <span class="string">" for thread "</span> + thread.asBinder());</span><br><span class="line">        mApp = app;</span><br><span class="line">        mPid = pid;</span><br><span class="line">        mAppThread = thread;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//卟告的回调</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">binderDied</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (localLOGV) Slog.v(</span><br><span class="line">            TAG, <span class="string">"Death received in "</span> + <span class="keyword">this</span></span><br><span class="line">            + <span class="string">" for thread "</span> + mAppThread.asBinder());</span><br><span class="line">        <span class="keyword">synchronized</span>(ActivityManagerService.<span class="keyword">this</span>) &#123;</span><br><span class="line">            appDiedLocked(mApp, mPid, mAppThread);<span class="comment">//通知AMS应用端进程死亡</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在应用创建后就AMS通过attachApplication调用attachApplicationLocked来注册Binder服务的卟告回调。它是一个AppDeathRecipient继承自IBinder.DeathRecipient，当服务端也就是应用端被杀掉后，会通过binderDied来通知AMS，这时候AMS通过appDiedLocked方法来处理应用被杀的逻辑。我们看看AMS这时候是如何处理的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//app被后台杀死后会通过此方法通知AMS ，这是由binder机制保证的</span></span><br><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">appDiedLocked</span><span class="params">(ProcessRecord app, <span class="keyword">int</span> pid,</span></span></span><br><span class="line"><span class="function"><span class="params">        IApplicationThread thread)</span> </span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// Clean up already done if the process has been re-started.</span></span><br><span class="line">    <span class="keyword">if</span> (app.pid == pid &amp;&amp; app.thread != <span class="keyword">null</span> &amp;&amp;</span><br><span class="line">            app.thread.asBinder() == thread.asBinder()) &#123;</span><br><span class="line">        <span class="keyword">boolean</span> doLowMem = app.instrumentationClass == <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">boolean</span> doOomAdj = doLowMem;</span><br><span class="line">        <span class="keyword">if</span> (!app.killedByAm) &#123;</span><br><span class="line">            mAllowLowerMemLevel = <span class="keyword">true</span>;</span><br><span class="line">            <span class="keyword">if</span>(<span class="string">"android.process.media"</span>.equals(app.processName))</span><br><span class="line">            &#123;</span><br><span class="line">                SystemProperties.set(<span class="string">"service.media_oncekilled"</span>, <span class="string">"true"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            mAllowLowerMemLevel = <span class="keyword">false</span>;</span><br><span class="line">            doLowMem = <span class="keyword">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        handleAppDiedLocked(app, <span class="keyword">false</span>, <span class="keyword">true</span>);<span class="comment">//处理app died的情况</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (doOomAdj) &#123;</span><br><span class="line">            updateOomAdjLocked();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (doLowMem) &#123;<span class="comment">//内存较低引起的要通知其他app low memory</span></span><br><span class="line">            doLowMemReportIfNeededLocked(app);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在appDiedLocked中进一步通过handleAppDiedLocked来处理。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">handleAppDiedLocked</span><span class="params">(ProcessRecord app,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">boolean</span> restarting, <span class="keyword">boolean</span> allowRestart)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//清理一些关于该应用的信息</span></span><br><span class="line">    cleanUpApplicationRecordLocked(app, restarting, allowRestart, -<span class="number">1</span>);</span><br><span class="line">    <span class="keyword">if</span> (!restarting) &#123;</span><br><span class="line">        removeLruProcessLocked(app);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (mProfileProc == app) &#123;</span><br><span class="line">        clearProfilerLocked();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Remove this application's activities from active lists.</span></span><br><span class="line">    <span class="keyword">boolean</span> hasVisibleActivities = mStackSupervisor.handleAppDiedLocked(app);</span><br><span class="line"></span><br><span class="line">    app.activities.clear();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (app.instrumentationClass != <span class="keyword">null</span>) &#123;</span><br><span class="line">        Slog.w(TAG, <span class="string">"Crash of app "</span> + app.processName</span><br><span class="line">                + <span class="string">" running instrumentation "</span> + app.instrumentationClass);</span><br><span class="line">        Bundle info = <span class="keyword">new</span> Bundle();</span><br><span class="line">        info.putString(<span class="string">"shortMsg"</span>, <span class="string">"Process crashed."</span>);</span><br><span class="line">        finishInstrumentationLocked(app, Activity.RESULT_CANCELED, info);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!restarting) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!mStackSupervisor.resumeTopActivitiesLocked()) &#123;</span><br><span class="line">            <span class="keyword">if</span> (hasVisibleActivities) &#123;</span><br><span class="line">                mStackSupervisor.ensureActivitiesVisibleLocked(<span class="keyword">null</span>, <span class="number">0</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>handleAppDiedLocked主要负责以下事情：</p>
+<ol>
+<li>负责清理一些Providers，receivers，service之类的信息</li>
+<li>从活动的Activity列表移除该应用的Activities</li>
+<li>通过resumeTopActivitiesLocked重建进程</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">cleanUpApplicationRecordLocked</span><span class="params">(ProcessRecord app,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">boolean</span> restarting, <span class="keyword">boolean</span> allowRestart, <span class="keyword">int</span> index)</span> </span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    mServices.killServicesLocked(app, allowRestart);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">boolean</span> restart = <span class="keyword">false</span>;</span><br><span class="line">    <span class="comment">//清理已经发布的provoider</span></span><br><span class="line">    <span class="comment">// Remove published content providers.</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i=app.pubProviders.size()-<span class="number">1</span>; i&gt;=<span class="number">0</span>; i--) &#123;</span><br><span class="line">        ContentProviderRecord cpr = app.pubProviders.valueAt(i);</span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">boolean</span> always = app.bad || !allowRestart;</span><br><span class="line">        <span class="keyword">if</span> (removeDyingProviderLocked(app, cpr, always) || always) &#123;</span><br><span class="line">            <span class="comment">// We left the provider in the launching list, need to</span></span><br><span class="line">            <span class="comment">// restart it.</span></span><br><span class="line">            restart = <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        cpr.provider = <span class="keyword">null</span>;</span><br><span class="line">        cpr.proc = <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    app.pubProviders.clear();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Take care of any launching providers waiting for this process.</span></span><br><span class="line">    <span class="keyword">if</span> (checkAppInLaunchingProvidersLocked(app, <span class="keyword">false</span>)) &#123;</span><br><span class="line">        restart = <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// Unregister from connected content providers.</span></span><br><span class="line">    <span class="keyword">if</span> (!app.conProviders.isEmpty()) &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;app.conProviders.size(); i++) &#123;</span><br><span class="line">            ContentProviderConnection conn = app.conProviders.get(i);</span><br><span class="line">            conn.provider.connections.remove(conn);</span><br><span class="line">        &#125;</span><br><span class="line">        app.conProviders.clear();</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">    skipCurrentReceiverLocked(app);</span><br><span class="line">    <span class="comment">//解注册所有的receiver</span></span><br><span class="line">    <span class="comment">// Unregister any receivers.</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i=app.receivers.size()-<span class="number">1</span>; i&gt;=<span class="number">0</span>; i--) &#123;</span><br><span class="line">        removeReceiverLocked(app.receivers.valueAt(i));</span><br><span class="line">    &#125;</span><br><span class="line">    app.receivers.clear();</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">if</span> (restart &amp;&amp; !app.isolated) &#123;</span><br><span class="line">        <span class="comment">// We have components that still need to be running in the</span></span><br><span class="line">        <span class="comment">// process, so re-launch it.</span></span><br><span class="line">        mProcessNames.put(app.processName, app.uid, app);</span><br><span class="line">        startProcessLocked(app, <span class="string">"restart"</span>, app.processName);</span><br><span class="line">    &#125; </span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>cleanUpApplicationRecordLocked负责清理应用的service，provider以及receiver的信息，并根据需要重启该进程。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">handleAppDiedLocked</span><span class="params">(ProcessRecord app)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">boolean</span> hasVisibleActivities = <span class="keyword">false</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> stackNdx = mStacks.size() - <span class="number">1</span>; stackNdx &gt;= <span class="number">0</span>; --stackNdx) &#123;</span><br><span class="line">        hasVisibleActivities |= mStacks.get(stackNdx).handleAppDiedLocked(app);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> hasVisibleActivities;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">handleAppDiedLocked</span><span class="params">(ProcessRecord app)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mPausingActivity != <span class="keyword">null</span> &amp;&amp; mPausingActivity.app == app) &#123;</span><br><span class="line">        mPausingActivity = <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (mLastPausedActivity != <span class="keyword">null</span> &amp;&amp; mLastPausedActivity.app == app) &#123;</span><br><span class="line">        mLastPausedActivity = <span class="keyword">null</span>;</span><br><span class="line">        mLastNoHistoryActivity = <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> removeHistoryRecordsForAppLocked(app);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">removeHistoryRecordsForAppLocked</span><span class="params">(ProcessRecord app)</span> </span>&#123;</span><br><span class="line">    removeHistoryRecordsForAppLocked(mLRUActivities, app, <span class="string">"mLRUActivities"</span>);</span><br><span class="line">    removeHistoryRecordsForAppLocked(mStackSupervisor.mStoppingActivities, app,</span><br><span class="line">            <span class="string">"mStoppingActivities"</span>);</span><br><span class="line">    removeHistoryRecordsForAppLocked(mStackSupervisor.mGoingToSleepActivities, app,</span><br><span class="line">            <span class="string">"mGoingToSleepActivities"</span>);</span><br><span class="line">    removeHistoryRecordsForAppLocked(mStackSupervisor.mWaitingVisibleActivities, app,</span><br><span class="line">            <span class="string">"mWaitingVisibleActivities"</span>);</span><br><span class="line">    removeHistoryRecordsForAppLocked(mStackSupervisor.mFinishingActivities, app,</span><br><span class="line">            <span class="string">"mFinishingActivities"</span>);</span><br><span class="line">    <span class="comment">// Clean out the history list.</span></span><br><span class="line">    <span class="keyword">int</span> i = numActivities();</span><br><span class="line">     <span class="keyword">for</span> (<span class="keyword">int</span> taskNdx = mTaskHistory.size() - <span class="number">1</span>; taskNdx &gt;= <span class="number">0</span>; --taskNdx) &#123;</span><br><span class="line">            <span class="keyword">final</span> ArrayList&lt;ActivityRecord&gt; activities = mTaskHistory.get(taskNdx).mActivities;</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> activityNdx = activities.size() - <span class="number">1</span>; activityNdx &gt;= <span class="number">0</span>; --activityNdx) &#123;</span><br><span class="line">                <span class="keyword">final</span> ActivityRecord r = activities.get(activityNdx);</span><br><span class="line">                --i;</span><br><span class="line">                 <span class="keyword">if</span> (r.app == app) &#123;</span><br><span class="line">                    <span class="keyword">boolean</span> remove;</span><br><span class="line">                    <span class="keyword">if</span> ((!r.haveState &amp;&amp; !r.stateNotNeeded) || r.finishing) &#123;</span><br><span class="line">                        <span class="comment">// Don't currently have state for the activity, or</span></span><br><span class="line">                        <span class="comment">// it is finishing -- always remove it.</span></span><br><span class="line">                        remove = <span class="keyword">true</span>;</span><br><span class="line">                    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (r.launchCount &gt; <span class="number">2</span> &amp;&amp;</span><br><span class="line">                            r.lastLaunchTime &gt; (SystemClock.uptimeMillis()-<span class="number">60000</span>)) &#123;</span><br><span class="line">                        <span class="comment">// We have launched this activity too many times since it was</span></span><br><span class="line">                        <span class="comment">// able to run, so give up and remove it.</span></span><br><span class="line">                        remove = <span class="keyword">true</span>;</span><br><span class="line">                    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                        <span class="comment">// The process may be gone, but the activity lives on!</span></span><br><span class="line">                        remove = <span class="keyword">false</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">if</span> (remove) &#123;</span><br><span class="line">                        <span class="keyword">if</span> (!r.finishing) &#123;</span><br><span class="line">                            <span class="keyword">if</span> (r.state == ActivityState.RESUMED) &#123;</span><br><span class="line">                                mService.updateUsageStats(r, <span class="keyword">false</span>);</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;</span><br><span class="line">                        removeActivityFromHistoryLocked(r);</span><br><span class="line">                    &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">                        <span class="keyword">if</span> (r.visible) &#123;</span><br><span class="line">                            hasVisibleActivities = <span class="keyword">true</span>;</span><br><span class="line">                        &#125;</span><br><span class="line">                        r.app = <span class="keyword">null</span>;<span class="comment">//将app 置null</span></span><br><span class="line">                        r.nowVisible = <span class="keyword">false</span>;</span><br><span class="line">                        <span class="keyword">if</span> (!r.haveState) &#123;</span><br><span class="line">                            r.icicle = <span class="keyword">null</span>;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                    cleanUpActivityLocked(r, <span class="keyword">true</span>, <span class="keyword">true</span>);</span><br><span class="line">                 &#125;</span><br><span class="line">            &#125;</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>removeHistoryRecordsForAppLocked首先从mLRUActivities，mStoppingActivities，mGoingToSleepActivities等多个列表中移除app相关的activity，随后遍历ActivityStack找到和app相关的activity，根据不同的情况标记activity是否应该从历史列表中移除该activity，如果需要的话就调用removeActivityFromHistoryLocked，如果不需要就将r.app置为null。这样在AMS启动activity时就知道该应用的进程需要重建了。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">resumeTopActivityLocked</span><span class="params">(ActivityRecord prev, Bundle options)</span> </span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">if</span> (next.app != <span class="keyword">null</span> &amp;&amp; next.app.thread != <span class="keyword">null</span>) &#123;</span><br><span class="line"></span><br><span class="line">    &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">//1.要启动的activity还未创建过进程</span></span><br><span class="line">        <span class="comment">//2.app或者activity被异常杀死过，需要重新启动</span></span><br><span class="line">        <span class="comment">// Whoops, need to restart this activity!</span></span><br><span class="line">        <span class="keyword">if</span> (!next.hasBeenLaunched) &#123;</span><br><span class="line">            next.hasBeenLaunched = <span class="keyword">true</span>;</span><br><span class="line">        &#125; </span><br><span class="line">        mStackSupervisor.startSpecificActivityLocked(next, <span class="keyword">true</span>, <span class="keyword">true</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">startSpecificActivityLocked</span><span class="params">(ActivityRecord r,</span></span></span><br><span class="line"><span class="function"><span class="params">            <span class="keyword">boolean</span> andResume, <span class="keyword">boolean</span> checkConfig)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (app != <span class="keyword">null</span> &amp;&amp; app.thread != <span class="keyword">null</span>) &#123;</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">     mService.startProcessLocked(r.processName, r.info.applicationInfo, <span class="keyword">true</span>, <span class="number">0</span>,</span><br><span class="line">                <span class="string">"activity"</span>, r.intent.getComponent(), <span class="keyword">false</span>, <span class="keyword">false</span>, <span class="keyword">true</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>r.app被置位null后,AMS会去重建该activity对应的进程。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpayimg.png" alt="esli 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipayimg.png" alt="esli 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Android/" rel="tag"># Android</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/[object Object]/aosp-activity-finish-src/" rel="next" title="Activity的Finish过程分析">
+                <i class="fa fa-chevron-left"></i> Activity的Finish过程分析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/[object Object]/aosp-memory-mgr/" rel="prev" title="Android 的内存管理">
+                Android 的内存管理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/uploads/avatar.png"
+                alt="esli" />
+            
+              <p class="site-author-name" itemprop="name">esli</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">61</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#lowmemorykiller机制"><span class="nav-number">1.</span> <span class="nav-text"> LowMemoryKiller机制</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#kernel层的实现"><span class="nav-number">1.1.</span> <span class="nav-text"> Kernel层的实现</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#应用恢复机制"><span class="nav-number">2.</span> <span class="nav-text"> 应用恢复机制</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">esli</span>
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("jBNLE1XrpdNfIpNnvp02BNFi-gzGzoHsz", "1KETbc2T1LA8C2oPKVwpbzVm");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

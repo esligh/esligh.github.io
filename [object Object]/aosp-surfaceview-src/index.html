@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="AOSP," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="SurfaceView介绍 SurfaceView是Andoird GUI系统中一种特殊的控件，它可以在非UI线程进行绘图。UI线程的绘制在view绘制流程一篇中介绍过了，本篇将对SurfaceView的绘制进行介绍。在此之前，我们看看SurfaceView的一般用法。 123456789101112131415161718192021222324252627282930313233343536">
+<meta name="keywords" content="AOSP">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SurfaceView源码分析">
+<meta property="og:url" content="http://esligh.github.io/[object Object]/aosp-surfaceview-src/index.html">
+<meta property="og:site_name" content="esli&#39;s Blog">
+<meta property="og:description" content="SurfaceView介绍 SurfaceView是Andoird GUI系统中一种特殊的控件，它可以在非UI线程进行绘图。UI线程的绘制在view绘制流程一篇中介绍过了，本篇将对SurfaceView的绘制进行介绍。在此之前，我们看看SurfaceView的一般用法。 123456789101112131415161718192021222324252627282930313233343536">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-03-16T08:10:02.539Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SurfaceView源码分析">
+<meta name="twitter:description" content="SurfaceView介绍 SurfaceView是Andoird GUI系统中一种特殊的控件，它可以在非UI线程进行绘图。UI线程的绘制在view绘制流程一篇中介绍过了，本篇将对SurfaceView的绘制进行介绍。在此之前，我们看看SurfaceView的一般用法。 123456789101112131415161718192021222324252627282930313233343536">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://esligh.github.io/[object Object]/aosp-surfaceview-src/"/>
+
+
+
+
+
+  <title>SurfaceView源码分析 | esli's Blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">esli's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">day day up</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off"
+             placeholder="搜索..." spellcheck="false"
+             type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://esligh.github.io/[object Object]/aosp-surfaceview-src/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="esli">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="esli's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">SurfaceView源码分析</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-24T17:01:38+08:00">
+                2017-08-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AOSP/" itemprop="url" rel="index">
+                    <span itemprop="name">AOSP</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+             <span id="/[object Object]/aosp-surfaceview-src/" class="leancloud_visitors" data-flag-title="SurfaceView源码分析">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="surfaceview介绍"><a class="markdownIt-Anchor" href="#surfaceview介绍"></a> SurfaceView介绍</h3>
+<p>SurfaceView是Andoird GUI系统中一种特殊的控件，它可以在非UI线程进行绘图。UI线程的绘制在view绘制流程一篇中介绍过了，本篇将对SurfaceView的绘制进行介绍。在此之前，我们看看SurfaceView的一般用法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SurfaceViewDemo</span> <span class="keyword">extends</span> <span class="title">SurfaceView</span></span></span><br><span class="line"><span class="class">        <span class="keyword">implements</span> <span class="title">SurfaceHolder</span>.<span class="title">Callback</span>, <span class="title">Runnable</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> SurfaceHolder mHolder;</span><br><span class="line">    <span class="keyword">private</span> Canvas mCanvas;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">boolean</span> bDrawing;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SurfaceViewDemo</span><span class="params">(Context context)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>(context);</span><br><span class="line">        initView();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SurfaceViewDemo</span><span class="params">(Context context, AttributeSet attrs)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>(context, attrs);</span><br><span class="line">        initView();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SurfaceViewDemo</span><span class="params">(Context context, AttributeSet attrs, <span class="keyword">int</span> defStyle)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>(context, attrs, defStyle);</span><br><span class="line">        initView();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">initView</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        mHolder = getHolder();</span><br><span class="line">        mHolder.addCallback(<span class="keyword">this</span>);</span><br><span class="line">        setFocusable(<span class="keyword">true</span>);</span><br><span class="line">        setFocusableInTouchMode(<span class="keyword">true</span>);</span><br><span class="line">        <span class="keyword">this</span>.setKeepScreenOn(<span class="keyword">true</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">surfaceCreated</span><span class="params">(SurfaceHolder holder)</span> </span>&#123;</span><br><span class="line">        mIsDrawing = <span class="keyword">true</span>;</span><br><span class="line">        <span class="keyword">new</span> Thread(<span class="keyword">this</span>).start();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">surfaceChanged</span><span class="params">(SurfaceHolder holder,</span></span></span><br><span class="line"><span class="function"><span class="params">                               <span class="keyword">int</span> format, <span class="keyword">int</span> width, <span class="keyword">int</span> height)</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">surfaceDestroyed</span><span class="params">(SurfaceHolder holder)</span> </span>&#123;</span><br><span class="line">        mIsDrawing = <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">while</span> (bDrawing) &#123;</span><br><span class="line">            draw();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">draw</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            mCanvas = mHolder.lockCanvas();</span><br><span class="line">            <span class="comment">// draw something</span></span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (mCanvas != <span class="keyword">null</span>)</span><br><span class="line">                mHolder.unlockCanvasAndPost(mCanvas);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>SurfaceView的生命周期回调surfaceCreated-&gt;SurfaceChanged-&gt;surfaceDestroyed。这里在surfaceCreated中进行绘制，这个绘制可以在单独的线程中进行，并不依赖于ui线程。至于为何这样，后面我们再解释。</p>
+<p>首先看看surfaceview的源码，先看其成员都有哪些</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SurfaceView</span> <span class="keyword">extends</span> <span class="title">View</span> </span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">private</span> <span class="keyword">final</span> String TAG = <span class="string">"SurfaceView"</span>;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">boolean</span> DEBUG = <span class="keyword">false</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> ArrayList&lt;SurfaceHolder.Callback&gt; mCallbacks</span><br><span class="line">            = <span class="keyword">new</span> ArrayList&lt;SurfaceHolder.Callback&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span>[] mLocation = <span class="keyword">new</span> <span class="keyword">int</span>[<span class="number">2</span>];</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> ReentrantLock mSurfaceLock = <span class="keyword">new</span> ReentrantLock();</span><br><span class="line">    <span class="keyword">final</span> Surface mSurface = <span class="keyword">new</span> Surface();  <span class="comment">// Current surface in use  surfaceView使用的绘图表面</span></span><br><span class="line">    <span class="keyword">final</span> Surface mNewSurface = <span class="keyword">new</span> Surface();    <span class="comment">// New surface we are switching to</span></span><br><span class="line">    <span class="keyword">boolean</span> mDrawingStopped = <span class="keyword">true</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> WindowManager.LayoutParams mLayout</span><br><span class="line">            = <span class="keyword">new</span> WindowManager.LayoutParams();</span><br><span class="line">    IWindowSession mSession;</span><br><span class="line">    MyWindow mWindow;</span><br><span class="line">    <span class="keyword">final</span> Rect mVisibleInsets = <span class="keyword">new</span> Rect();</span><br><span class="line">    <span class="keyword">final</span> Rect mWinFrame = <span class="keyword">new</span> Rect();</span><br><span class="line">    <span class="keyword">final</span> Rect mOverscanInsets = <span class="keyword">new</span> Rect();</span><br><span class="line">    <span class="keyword">final</span> Rect mContentInsets = <span class="keyword">new</span> Rect();</span><br><span class="line">    <span class="keyword">final</span> Configuration mConfiguration = <span class="keyword">new</span> Configuration();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> KEEP_SCREEN_ON_MSG = <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> GET_NEW_SURFACE_MSG = <span class="number">2</span>;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> UPDATE_WINDOW_MSG = <span class="number">3</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> mWindowType = WindowManager.LayoutParams.TYPE_APPLICATION_MEDIA;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">boolean</span> mIsCreating = <span class="keyword">false</span>;</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在SurfaceView中有两个Surface绘图表面，所有绘制操作都是在这个绘图表面上进行的，这里有两个Surface是为了进行绘图时的前后台切换，这样当后台进行绘制时，前台可以显示之前绘制好的Surface表面。IWindowSession是用来和WMS进行会话的session，因为SurfaceView它本质上也是一个Window，它还有一个MyWindow成员，它类似于ViewRootImpl中的W对象，是用来和WMS进行通信交互的。因此它也是一个Binder对象，在WMS一端，它唯一标志了一个窗口对象Window。</p>
+<h3 id="surfaceview的绘制流程"><a class="markdownIt-Anchor" href="#surfaceview的绘制流程"></a> SurfaceView的绘制流程</h3>
+<p>SurfaceView的绘制依然属于view树绘制的一部分，它依赖于宿主窗口，在View树的绘制流程中，我们看看SurfaceView是如何进行自身的绘制的，在performTraversals中绘制view树之前，会通知view树Attach到宿主窗口上，这是通过host.dispatchAttachedToWindow(attachInfo, 0)来实现的，这里的host即DecorView，它是个ViewGroup。在ViewGroup中又会调用子view的dispatchAttachedToWindow方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//ViewGroup</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">dispatchAttachedToWindow</span><span class="params">(AttachInfo info, <span class="keyword">int</span> visibility)</span> </span>&#123;</span><br><span class="line">    mGroupFlags |= FLAG_PREVENT_DISPATCH_ATTACHED_TO_WINDOW;</span><br><span class="line">    <span class="keyword">super</span>.dispatchAttachedToWindow(info, visibility);</span><br><span class="line">    mGroupFlags &amp;= ~FLAG_PREVENT_DISPATCH_ATTACHED_TO_WINDOW;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> count = mChildrenCount;<span class="comment">//子视图的数目</span></span><br><span class="line">    <span class="keyword">final</span> View[] children = mChildren;<span class="comment">//子视图数组</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">        <span class="keyword">final</span> View child = children[i];</span><br><span class="line">        child.dispatchAttachedToWindow(info,</span><br><span class="line">                visibility | (child.mViewFlags &amp; VISIBILITY_MASK));<span class="comment">//通知每个子视图他们被添加到宿主窗口上去了</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//view</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">dispatchAttachedToWindow</span><span class="params">(AttachInfo info, <span class="keyword">int</span> visibility)</span> </span>&#123;</span><br><span class="line">    mAttachInfo = info;<span class="comment">//保存所附加窗口的信息</span></span><br><span class="line">    <span class="keyword">if</span> (mOverlay != <span class="keyword">null</span>) &#123;</span><br><span class="line">        mOverlay.getOverlayView().dispatchAttachedToWindow(info, visibility);</span><br><span class="line">    &#125;</span><br><span class="line">    mWindowAttachCount++;</span><br><span class="line">    <span class="comment">// We will need to evaluate the drawable state at least once.</span></span><br><span class="line">    mPrivateFlags |= PFLAG_DRAWABLE_STATE_DIRTY;</span><br><span class="line">    <span class="keyword">if</span> (mFloatingTreeObserver != <span class="keyword">null</span>) &#123;</span><br><span class="line">        info.mTreeObserver.merge(mFloatingTreeObserver);</span><br><span class="line">        mFloatingTreeObserver = <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> ((mPrivateFlags&amp;PFLAG_SCROLL_CONTAINER) != <span class="number">0</span>) &#123;</span><br><span class="line">        mAttachInfo.mScrollContainers.add(<span class="keyword">this</span>);</span><br><span class="line">        mPrivateFlags |= PFLAG_SCROLL_CONTAINER_ADDED;</span><br><span class="line">    &#125;</span><br><span class="line">    performCollectViewAttributes(mAttachInfo, visibility);</span><br><span class="line">    onAttachedToWindow();<span class="comment">//onAttachedToWindow 让子类处理它被附加到宿主窗口时的事件</span></span><br><span class="line"></span><br><span class="line">    ListenerInfo li = mListenerInfo;</span><br><span class="line">    <span class="keyword">final</span> CopyOnWriteArrayList&lt;OnAttachStateChangeListener&gt; listeners =</span><br><span class="line">            li != <span class="keyword">null</span> ? li.mOnAttachStateChangeListeners : <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (listeners != <span class="keyword">null</span> &amp;&amp; listeners.size() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (OnAttachStateChangeListener listener : listeners) &#123;</span><br><span class="line">            listener.onViewAttachedToWindow(<span class="keyword">this</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> vis = info.mWindowVisibility;</span><br><span class="line">    <span class="keyword">if</span> (vis != GONE) &#123;</span><br><span class="line">        onWindowVisibilityChanged(vis);<span class="comment">//通知宿主窗口的可见性发生了变化</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> ((mPrivateFlags&amp;PFLAG_DRAWABLE_STATE_DIRTY) != <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">// If nobody has evaluated the drawable state yet, then do it now.</span></span><br><span class="line">        refreshDrawableState();</span><br><span class="line">    &#125;</span><br><span class="line">    needGlobalAttributesUpdate(<span class="keyword">false</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于子View，它的dispatchAttachedToWindow会回调onAttachedToWindow通知view被添加到宿主window上，随后宿主窗口可见，还会通过onWindowVisibilityChanged通知可见性发生了变化。这里我们看看SurfaceView它是如何做处理的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//surfaceView被添加到宿主窗口时回调</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onAttachedToWindow</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.onAttachedToWindow();</span><br><span class="line">    mParent.requestTransparentRegion(<span class="keyword">this</span>);<span class="comment">//请求父窗口设置一块透明区域  即 在父窗口视图上挖一个洞  mParent为其父类View</span></span><br><span class="line">    mSession = getWindowSession();<span class="comment">//获取IWindowSession 这是一个binder负责和WMS通信  后续通过这个session来向WMS请求绘图表面</span></span><br><span class="line">    mLayout.token = getWindowToken();<span class="comment">//这个token也是ViewRootImpl中的W</span></span><br><span class="line">    mLayout.setTitle(<span class="string">"SurfaceView"</span>);</span><br><span class="line">    mViewVisibility = getVisibility() == VISIBLE;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!mGlobalListenersAdded) &#123;</span><br><span class="line">        ViewTreeObserver observer = getViewTreeObserver();</span><br><span class="line">        observer.addOnScrollChangedListener(mScrollChangedListener);</span><br><span class="line">        observer.addOnPreDrawListener(mDrawListener);</span><br><span class="line">        mGlobalListenersAdded = <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在SurfaceView的onAttachedToWindow中，SurfaceView会向父窗口请求设置一块透明区域，这个透明区域是为了使SurfaceView在宿主窗口中可见，因为SurfaceView被添加时它的Z序是小于宿主窗口的，即它是显示在宿主窗口下面的，要显示SurfaceView就需要在宿主窗口设置对应大小的透明区域。同时还会取到IWindowSession 用来和WMS进行通信。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"> <span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onWindowVisibilityChanged</span><span class="params">(<span class="keyword">int</span> visibility)</span> </span>&#123;<span class="comment">//宿主窗口的可见性发生了变化</span></span><br><span class="line">    <span class="keyword">super</span>.onWindowVisibilityChanged(visibility);</span><br><span class="line">    <span class="comment">//mWindowVisibility表示SurfaceView的宿主窗口的可见性，mViewVisibility表示SurfaceView自身的可见性。</span></span><br><span class="line">        <span class="comment">//只有当mWindowVisibility和mViewVisibility的值均等于true的时候，mRequestedVisible的值才为true，表示SurfaceView是可见的</span></span><br><span class="line">    mWindowVisibility = visibility == VISIBLE;</span><br><span class="line">    mRequestedVisible = mWindowVisibility &amp;&amp; mViewVisibility;</span><br><span class="line">    updateWindow(<span class="keyword">false</span>, <span class="keyword">false</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>关于可见性的变化，SurfaceView计算当前宿主窗口的可见性，并通过updateWindow来更新自身的窗口。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">updateWindow</span><span class="params">(<span class="keyword">boolean</span> force, <span class="keyword">boolean</span> redrawNeeded)</span> </span>&#123;</span><br><span class="line">    ……</span><br><span class="line">    getLocationInWindow(mLocation);</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> creating = mWindow == <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> formatChanged = mFormat != mRequestedFormat;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> sizeChanged = mWidth != myWidth || mHeight != myHeight;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> visibleChanged = mVisible != mRequestedVisible;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (force || creating || formatChanged || sizeChanged || visibleChanged</span><br><span class="line">        || mLeft != mLocation[<span class="number">0</span>] || mTop != mLocation[<span class="number">1</span>]</span><br><span class="line">        || mUpdateWindowNeeded || mReportDrawNeeded || redrawNeeded) &#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">final</span> <span class="keyword">boolean</span> visible = mVisible = mRequestedVisible;</span><br><span class="line">            mLeft = mLocation[<span class="number">0</span>];</span><br><span class="line">            mTop = mLocation[<span class="number">1</span>];</span><br><span class="line">            mWidth = myWidth;</span><br><span class="line">            mHeight = myHeight;</span><br><span class="line">            mFormat = mRequestedFormat;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Places the window relative</span></span><br><span class="line">            mLayout.x = mLeft;</span><br><span class="line">            mLayout.y = mTop;</span><br><span class="line">            mLayout.width = getWidth();</span><br><span class="line">            mLayout.height = getHeight();</span><br><span class="line">            <span class="keyword">if</span> (mTranslator != <span class="keyword">null</span>) &#123;</span><br><span class="line">                mTranslator.translateLayoutParamsInAppWindowToScreen(mLayout);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            mLayout.format = mRequestedFormat;</span><br><span class="line">            mLayout.flags |=WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE</span><br><span class="line">                            | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE</span><br><span class="line">                            | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS</span><br><span class="line">                            | WindowManager.LayoutParams.FLAG_SCALED</span><br><span class="line">                            | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE</span><br><span class="line">                            | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;</span><br><span class="line">            <span class="keyword">if</span> (!getContext().getResources().getCompatibilityInfo().supportsScreen()) &#123;</span><br><span class="line">                mLayout.privateFlags |=</span><br><span class="line">                    WindowManager.LayoutParams.PRIVATE_FLAG_COMPATIBLE_WINDOW;</span><br><span class="line">            &#125;</span><br><span class="line">            mLayout.privateFlags |= WindowManager.LayoutParams.PRIVATE_FLAG_NO_MOVE_ANIMATION;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (mWindow == <span class="keyword">null</span>) &#123;</span><br><span class="line">                Display display = getDisplay();</span><br><span class="line">                mWindow = <span class="keyword">new</span> MyWindow(<span class="keyword">this</span>);</span><br><span class="line">                mLayout.type = mWindowType;</span><br><span class="line">                mLayout.gravity = Gravity.START|Gravity.TOP;</span><br><span class="line">                mSession.addToDisplayWithoutInputChannel(mWindow, mWindow.mSeq, mLayout,</span><br><span class="line">                        mVisible ? VISIBLE : GONE, display.getDisplayId(), mContentInsets);</span><br><span class="line">                <span class="comment">//为surfaceview添加窗口，对应于WMS一端</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">boolean</span> realSizeChanged;</span><br><span class="line">            <span class="keyword">boolean</span> reportDrawNeeded;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">int</span> relayoutResult;</span><br><span class="line"></span><br><span class="line">            mSurfaceLock.lock();</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                mUpdateWindowNeeded = <span class="keyword">false</span>;</span><br><span class="line">                reportDrawNeeded = mReportDrawNeeded;</span><br><span class="line">                mReportDrawNeeded = <span class="keyword">false</span>;</span><br><span class="line">                mDrawingStopped = !visible;</span><br><span class="line"></span><br><span class="line">                relayoutResult = mSession.relayout(</span><br><span class="line">                    mWindow, mWindow.mSeq, mLayout, mWidth, mHeight,</span><br><span class="line">                        visible ? VISIBLE : GONE,</span><br><span class="line">                        WindowManagerGlobal.RELAYOUT_DEFER_SURFACE_DESTROY,</span><br><span class="line">                        mWinFrame, mOverscanInsets, mContentInsets,</span><br><span class="line">                        mVisibleInsets, mConfiguration, mNewSurface);<span class="comment">//计算窗口大小，分配绘图表面</span></span><br><span class="line">                <span class="keyword">if</span> ((relayoutResult &amp; WindowManagerGlobal.RELAYOUT_RES_FIRST_TIME) != <span class="number">0</span>) &#123;</span><br><span class="line">                    mReportDrawNeeded = <span class="keyword">true</span>;</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                mSurfaceFrame.left = <span class="number">0</span>;</span><br><span class="line">                mSurfaceFrame.top = <span class="number">0</span>;</span><br><span class="line">                <span class="keyword">if</span> (mTranslator == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    mSurfaceFrame.right = mWinFrame.width();</span><br><span class="line">                    mSurfaceFrame.bottom = mWinFrame.height();</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    <span class="keyword">float</span> appInvertedScale = mTranslator.applicationInvertedScale;</span><br><span class="line">                    mSurfaceFrame.right = (<span class="keyword">int</span>) (mWinFrame.width() * appInvertedScale + <span class="number">0.5f</span>);</span><br><span class="line">                    mSurfaceFrame.bottom = (<span class="keyword">int</span>) (mWinFrame.height() * appInvertedScale + <span class="number">0.5f</span>);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">final</span> <span class="keyword">int</span> surfaceWidth = mSurfaceFrame.right;</span><br><span class="line">                <span class="keyword">final</span> <span class="keyword">int</span> surfaceHeight = mSurfaceFrame.bottom;</span><br><span class="line">                realSizeChanged = mLastSurfaceWidth != surfaceWidth</span><br><span class="line">                        || mLastSurfaceHeight != surfaceHeight;</span><br><span class="line">                mLastSurfaceWidth = surfaceWidth;</span><br><span class="line">                mLastSurfaceHeight = surfaceHeight;</span><br><span class="line">            &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                mSurfaceLock.unlock();</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            ……</span><br><span class="line">            <span class="keyword">if</span> (visible &amp;&amp; mSurface.isValid()) &#123;</span><br><span class="line">                <span class="keyword">if</span> (!mSurfaceCreated &amp;&amp; (surfaceChanged || visibleChanged)) &#123;</span><br><span class="line">                    mSurfaceCreated = <span class="keyword">true</span>;</span><br><span class="line">                    mIsCreating = <span class="keyword">true</span>;</span><br><span class="line">                    <span class="keyword">if</span> (DEBUG) Log.i(TAG, <span class="string">"visibleChanged -- surfaceCreated"</span>);</span><br><span class="line">                    <span class="keyword">if</span> (callbacks == <span class="keyword">null</span>) &#123;</span><br><span class="line">                        callbacks = getSurfaceCallbacks();</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">for</span> (SurfaceHolder.Callback c : callbacks) &#123;</span><br><span class="line">                        c.surfaceCreated(mSurfaceHolder);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (creating || formatChanged || sizeChanged</span><br><span class="line">                        || visibleChanged || realSizeChanged) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (DEBUG) Log.i(TAG, <span class="string">"surfaceChanged -- format="</span> + mFormat</span><br><span class="line">                            + <span class="string">" w="</span> + myWidth + <span class="string">" h="</span> + myHeight);</span><br><span class="line">                    <span class="keyword">if</span> (callbacks == <span class="keyword">null</span>) &#123;</span><br><span class="line">                        callbacks = getSurfaceCallbacks();</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">for</span> (SurfaceHolder.Callback c : callbacks) &#123;</span><br><span class="line">                        c.surfaceChanged(mSurfaceHolder, mFormat, myWidth, myHeight);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (redrawNeeded) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (DEBUG) Log.i(TAG, <span class="string">"surfaceRedrawNeeded"</span>);</span><br><span class="line">                    <span class="keyword">if</span> (callbacks == <span class="keyword">null</span>) &#123;</span><br><span class="line">                        callbacks = getSurfaceCallbacks();</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">for</span> (SurfaceHolder.Callback c : callbacks) &#123;</span><br><span class="line">                        <span class="keyword">if</span> (c <span class="keyword">instanceof</span> SurfaceHolder.Callback2) &#123;</span><br><span class="line">                            ((SurfaceHolder.Callback2)c).surfaceRedrawNeeded(</span><br><span class="line">                                    mSurfaceHolder);</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            ……</span><br><span class="line">        &#125; <span class="keyword">catch</span> (RemoteException ex) &#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于SurfaceView来说，它拥有独立的Window，这个Window同样受WMS的管理，因此在绘制时需要将该Window添加到WMS中去，同时，它也有它自己的绘图表面，因此在绘制之前需要计算它自身的窗口大小并向WMS请求绘图表面。关于分配绘图缓冲在其它章节已做了描述，本篇不再多做介绍。</p>
+<h3 id="surfaceview的挖洞过程"><a class="markdownIt-Anchor" href="#surfaceview的挖洞过程"></a> SurfaceView的挖洞过程</h3>
+<p>SurfaceView的窗口类型一般都是TYPE_APPLICATION_MEDIA或者TYPE_APPLICATION_MEDIA_OVERLAY,它在添加到宿主窗口上时，会在父窗口的表面设置一个透明区域以显示SurfaceView自身的内容，这是通过requestTransparentRegion来进行的，下面我们就看看这个过程是如何完成的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//ViewGroup</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">requestTransparentRegion</span><span class="params">(View child)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (child != <span class="keyword">null</span>) &#123;</span><br><span class="line">        child.mPrivateFlags |= View.PFLAG_REQUEST_TRANSPARENT_REGIONS;</span><br><span class="line">        <span class="keyword">if</span> (mParent != <span class="keyword">null</span>) &#123;</span><br><span class="line">            mParent.requestTransparentRegion(<span class="keyword">this</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//ViewRootImpl    </span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">requestTransparentRegion</span><span class="params">(View child)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// the test below should not fail unless someone is messing with us</span></span><br><span class="line">    checkThread();</span><br><span class="line">    <span class="keyword">if</span> (mView == child) &#123;</span><br><span class="line">        mView.mPrivateFlags |= View.PFLAG_REQUEST_TRANSPARENT_REGIONS;</span><br><span class="line">        <span class="comment">// Need to make sure we re-evaluate the window attributes next</span></span><br><span class="line">        <span class="comment">// time around, to ensure the window has the correct format.</span></span><br><span class="line">        mWindowAttributesChanged = <span class="keyword">true</span>;</span><br><span class="line">        mWindowAttributesChangesFlag = <span class="number">0</span>;</span><br><span class="line">        requestLayout();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>SurfaceView请求透明区域的过程实际上为父View打上PFLAG_REQUEST_TRANSPARENT_REGIONS标记，这表示它要在宿主窗口上设置透明区域，这个过程直到ViewRootImpl，ViewRootImpl它也是ViewParent，它将调用requestLayout触发performTraversals来请求窗口重新布局和绘制，从而收集透明区域，最后通过WMS为该宿主窗口设置一个总的透明区域。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">performTraversals</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ……</span><br><span class="line">    <span class="keyword">if</span> ((host.mPrivateFlags &amp; View.PFLAG_REQUEST_TRANSPARENT_REGIONS) != <span class="number">0</span>) &#123;</span><br><span class="line">        host.getLocationInWindow(mTmpLocation);</span><br><span class="line">        mTransparentRegion.set(mTmpLocation[<span class="number">0</span>], mTmpLocation[<span class="number">1</span>],</span><br><span class="line">                mTmpLocation[<span class="number">0</span>] + host.mRight - host.mLeft,</span><br><span class="line">                mTmpLocation[<span class="number">1</span>] + host.mBottom - host.mTop);</span><br><span class="line"></span><br><span class="line">        host.gatherTransparentRegion(mTransparentRegion);</span><br><span class="line">        <span class="keyword">if</span> (mTranslator != <span class="keyword">null</span>) &#123;</span><br><span class="line">            mTranslator.translateRegionInWindowToScreen(mTransparentRegion);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!mTransparentRegion.equals(mPreviousTransparentRegion)) &#123;</span><br><span class="line">            mPreviousTransparentRegion.set(mTransparentRegion);</span><br><span class="line">            mFullRedrawNeeded = <span class="keyword">true</span>;</span><br><span class="line">            <span class="comment">// reconfigure window manager</span></span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                mWindowSession.setTransparentRegion(mWindow, mTransparentRegion);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ……</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>收集透明区域也是从DecorView开始的，它调用gatherTransparentRegion来完成,这个区域是由mTransparentRegion来存储维护的。如果透明区域发生了变化这时候就需要重新设置该透明区域到WMS中去。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//ViewGroup.java</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">gatherTransparentRegion</span><span class="params">(Region region)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// If no transparent regions requested, we are always opaque.</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> meOpaque = (mPrivateFlags &amp; View.PFLAG_REQUEST_TRANSPARENT_REGIONS) == <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (meOpaque &amp;&amp; region == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="comment">// The caller doesn't care about the region, so stop now.</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">super</span>.gatherTransparentRegion(region);</span><br><span class="line">    <span class="keyword">final</span> View[] children = mChildren;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> count = mChildrenCount;</span><br><span class="line">    <span class="keyword">boolean</span> noneOfTheChildrenAreTransparent = <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; count; i++) &#123;</span><br><span class="line">        <span class="keyword">final</span> View child = children[i];</span><br><span class="line">        <span class="keyword">if</span> ((child.mViewFlags &amp; VISIBILITY_MASK) == VISIBLE || child.getAnimation() != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (!child.gatherTransparentRegion(region)) &#123;</span><br><span class="line">                noneOfTheChildrenAreTransparent = <span class="keyword">false</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> meOpaque || noneOfTheChildrenAreTransparent;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>收集透明区域会遍历父view下的所有子view的透明区域。在开始收集之前，首先将透明区域设置为DecorView视图的大小，然后遍历子view，如果view是不透明的区域则将其从初始的透明区域中移除，这样最后保留下来的就是需要设置的透明区域。</p>
+<p>下面我们看看SurfaceView它是如何进行计算它的透明区域的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">gatherTransparentRegion</span><span class="params">(Region region)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mWindowType == WindowManager.LayoutParams.TYPE_APPLICATION_PANEL) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">super</span>.gatherTransparentRegion(region);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">boolean</span> opaque = <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">if</span> ((mPrivateFlags &amp; PFLAG_SKIP_DRAW) == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">// this view draws, remove it from the transparent region</span></span><br><span class="line">        opaque = <span class="keyword">super</span>.gatherTransparentRegion(region);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (region != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">int</span> w = getWidth();</span><br><span class="line">        <span class="keyword">int</span> h = getHeight();</span><br><span class="line">        <span class="keyword">if</span> (w&gt;<span class="number">0</span> &amp;&amp; h&gt;<span class="number">0</span>) &#123;</span><br><span class="line">            getLocationInWindow(mLocation);</span><br><span class="line">            <span class="comment">// otherwise, punch a hole in the whole hierarchy</span></span><br><span class="line">            <span class="keyword">int</span> l = mLocation[<span class="number">0</span>];</span><br><span class="line">            <span class="keyword">int</span> t = mLocation[<span class="number">1</span>];</span><br><span class="line">            region.op(l, t, l+w, t+h, Region.Op.UNION);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (PixelFormat.formatHasAlpha(mRequestedFormat)) &#123;</span><br><span class="line">        opaque = <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> opaque;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>SurfaceView首先判断窗口类型是否作为WindowManager.LayoutParams.TYPE_APPLICATION_PANEL，如果是则表示SurfaceView是用来作为应用面板的，这时候调用父类view的gatherTransparentRegion来处理，如果需要绘制，则将view的绘制区域从从参数region所描述的透明区域中移除。</p>
+<h3 id="surfaceview的绘制"><a class="markdownIt-Anchor" href="#surfaceview的绘制"></a> SurfaceView的绘制</h3>
+<p>SurfaceView具有独立的绘图Surface,但它仍然属于View树中的子节点，它依附在宿主窗口上，所以它自身的view也是需要绘制到宿主窗口的Surface上的。在介绍view绘制流程一节中我们知道了view的绘制会触发draw和dispatchDraw方法，前者绘制它自身，后者负责绘制子view。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//SurfaceView.java</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">draw</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mWindowType != WindowManager.LayoutParams.TYPE_APPLICATION_PANEL) &#123;</span><br><span class="line">        <span class="comment">// draw() is not called when SKIP_DRAW is set</span></span><br><span class="line">        <span class="keyword">if</span> ((mPrivateFlags &amp; PFLAG_SKIP_DRAW) == <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="comment">// punch a whole in the view-hierarchy below us</span></span><br><span class="line">            canvas.drawColor(<span class="number">0</span>, PorterDuff.Mode.CLEAR);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">super</span>.draw(canvas);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">dispatchDraw</span><span class="params">(Canvas canvas)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mWindowType != WindowManager.LayoutParams.TYPE_APPLICATION_PANEL) &#123;</span><br><span class="line">        <span class="comment">// if SKIP_DRAW is cleared, draw() has already punched a hole</span></span><br><span class="line">        <span class="keyword">if</span> ((mPrivateFlags &amp; PFLAG_SKIP_DRAW) == PFLAG_SKIP_DRAW) &#123;</span><br><span class="line">            <span class="comment">// punch a whole in the view-hierarchy below us</span></span><br><span class="line">            canvas.drawColor(<span class="number">0</span>, PorterDuff.Mode.CLEAR);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">super</span>.dispatchDraw(canvas);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>draw和dispatchDraw方法的参数canvas代表的是宿主窗口的绘图表面的画布，这表示surfaceview自身的ui是绘制在<br>
+宿主绘图表面上的，如果mWindowType不为WindowManager.LayoutParams.TYPE_APPLICATION_PANEL表示SurfaceView不作为应用面板，那么将其view所占区域设置为黑色。</p>
+<p>除了在宿主窗口上绘制ui，SurfaceView可以在自身的绘图表面上绘制内容，一般的绘制流程如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">SurfaceView sv = (SurfaceView )findViewById(R.id.surface_view);    </span><br><span class="line">SurfaceHolder sh = sv.getHolder();  </span><br><span class="line">Cavas canvas = sh.lockCanvas()  </span><br><span class="line"> </span><br><span class="line"><span class="comment">//Draw something on canvas </span></span><br><span class="line">......  </span><br><span class="line"> </span><br><span class="line">sh.unlockCanvasAndPost(canvas);</span><br></pre></td></tr></table></figure>
+<p>需要注意的是，当绘图表面的类型设置为SURFACE_TYPE_PUSH_BUFFERS时，表示绘图表面的缓冲区不受我们控制，它是由摄像头或者视频播放服务来提供的。因此不能在随意在上面进行内容绘制。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"> <span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Canvas <span class="title">lockCanvas</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> internalLockCanvas(<span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">final</span> Canvas <span class="title">internalLockCanvas</span><span class="params">(Rect dirty)</span> </span>&#123;</span><br><span class="line">    mSurfaceLock.lock();</span><br><span class="line">    Canvas c = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (!mDrawingStopped &amp;&amp; mWindow != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            c = mSurface.lockCanvas(dirty);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            Log.e(LOG_TAG, <span class="string">"Exception locking surface"</span>, e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (c != <span class="keyword">null</span>) &#123;</span><br><span class="line">        mLastLockTime = SystemClock.uptimeMillis();</span><br><span class="line">        <span class="keyword">return</span> c;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// If the Surface is not ready to be drawn, then return null,</span></span><br><span class="line">    <span class="comment">// but throttle calls to this function so it isn't called more</span></span><br><span class="line">    <span class="comment">// than every 100ms.</span></span><br><span class="line">    <span class="keyword">long</span> now = SystemClock.uptimeMillis();</span><br><span class="line">    <span class="keyword">long</span> nextTime = mLastLockTime + <span class="number">100</span>;</span><br><span class="line">    <span class="keyword">if</span> (nextTime &gt; now) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Thread.sleep(nextTime-now);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">        now = SystemClock.uptimeMillis();</span><br><span class="line">    &#125;</span><br><span class="line">    mLastLockTime = now;</span><br><span class="line">    mSurfaceLock.unlock();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>SurfaceView的lockCanvas是从其绘图表面申请缓冲区，也就是Canvas，应用上层可以使用这个Canvas来进行内容的绘制，需要注意的是这个画布并不是线程安全的，需要通过mSurfaceLock的锁保护。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpayimg.png" alt="esli 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipayimg.png" alt="esli 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/AOSP/" rel="tag"># AOSP</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/[object Object]/aosp-camera-1-src/" rel="next" title="Camera源码分析">
+                <i class="fa fa-chevron-left"></i> Camera源码分析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/[object Object]/android-listview-src/" rel="prev" title="ListView的源码分析">
+                ListView的源码分析 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/uploads/avatar.png"
+                alt="esli" />
+            
+              <p class="site-author-name" itemprop="name">esli</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">61</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#surfaceview介绍"><span class="nav-number">1.</span> <span class="nav-text"> SurfaceView介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#surfaceview的绘制流程"><span class="nav-number">2.</span> <span class="nav-text"> SurfaceView的绘制流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#surfaceview的挖洞过程"><span class="nav-number">3.</span> <span class="nav-text"> SurfaceView的挖洞过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#surfaceview的绘制"><span class="nav-number">4.</span> <span class="nav-text"> SurfaceView的绘制</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">esli</span>
+
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("jBNLE1XrpdNfIpNnvp02BNFi-gzGzoHsz", "1KETbc2T1LA8C2oPKVwpbzVm");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>
