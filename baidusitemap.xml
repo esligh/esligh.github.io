@@ -4,6 +4,228 @@
 
     
   <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-surfaceflinger-composer-src/</loc>
+    <lastmod>2019-03-17T09:53:02.690Z</lastmod>
+    <data>
+        <display>
+        <title>SurfaceFlinger合成layer过程详解</title>
+        <pubTime>2018-08-02T08:51:26.000Z</pubTime>
+        
+        <tag>AOSP</tag>
+         
+         
+           
+             
+              <breadCrumb title="AOSP" url="http://esligh.github.io/categories/AOSP/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-libray-leakcanary-src/</loc>
+    <lastmod>2019-03-17T09:52:02.074Z</lastmod>
+    <data>
+        <display>
+        <title>LeakCanary内存泄漏检测机制原理</title>
+        <pubTime>2017-12-21T10:23:37.000Z</pubTime>
+        
+        <tag>Android</tag>
+         
+         
+           
+             
+              <breadCrumb title="Android Library" url="http://esligh.github.io/categories/Android-Library/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-library-okhttp3-3-src-md/</loc>
+    <lastmod>2019-03-17T09:49:44.932Z</lastmod>
+    <data>
+        <display>
+        <title>OKHttp的缓存策略</title>
+        <pubTime>2017-10-27T01:17:48.000Z</pubTime>
+        
+        <tag>Android</tag>
+         
+         
+           
+             
+              <breadCrumb title="Android Library" url="http://esligh.github.io/categories/Android-Library/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-library-okhttp3-2-src/</loc>
+    <lastmod>2019-03-17T09:47:51.537Z</lastmod>
+    <data>
+        <display>
+        <title>OkHttp源码分析(二)</title>
+        <pubTime>2017-10-20T01:57:55.000Z</pubTime>
+        
+        <tag>Android</tag>
+         
+         
+           
+             
+              <breadCrumb title="Android Library" url="http://esligh.github.io/categories/Android-Library/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-library-okhttp3-1-src/</loc>
+    <lastmod>2019-03-17T09:47:36.588Z</lastmod>
+    <data>
+        <display>
+        <title>OkHttp源码分析(一)</title>
+        <pubTime>2017-10-19T01:57:55.000Z</pubTime>
+        
+        <tag>Android</tag>
+         
+         
+           
+             
+              <breadCrumb title="Android Library" url="http://esligh.github.io/categories/Android-Library/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-reentrantlock-src/</loc>
+    <lastmod>2019-03-17T09:47:01.112Z</lastmod>
+    <data>
+        <display>
+        <title>Reentrantlock源码分析</title>
+        <pubTime>2016-08-27T00:29:53.000Z</pubTime>
+        
+        <tag>java</tag>
+         
+         
+           
+             
+              <breadCrumb title="JDK" url="http://esligh.github.io/categories/JDK/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-hashtable-src/</loc>
+    <lastmod>2019-03-17T09:46:27.553Z</lastmod>
+    <data>
+        <display>
+        <title>Hashtable源码分析</title>
+        <pubTime>2016-07-23T12:55:24.000Z</pubTime>
+        
+        <tag>java</tag>
+         
+         
+           
+             
+              <breadCrumb title="JDK" url="http://esligh.github.io/categories/JDK/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-hashmap-src/</loc>
+    <lastmod>2019-03-17T09:45:16.901Z</lastmod>
+    <data>
+        <display>
+        <title>HashMap源码分析</title>
+        <pubTime>2016-07-22T03:29:24.000Z</pubTime>
+        
+        <tag>java</tag>
+         
+         
+           
+             
+              <breadCrumb title="JDK" url="http://esligh.github.io/categories/JDK/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-arraylist-src/</loc>
+    <lastmod>2019-03-17T09:43:10.348Z</lastmod>
+    <data>
+        <display>
+        <title>ArrayList源码分析</title>
+        <pubTime>2016-07-19T11:23:50.000Z</pubTime>
+        
+        <tag>java</tag>
+         
+        <tag>jdk</tag>
+         
+         
+           
+             
+              <breadCrumb title="JDK" url="http://esligh.github.io/categories/JDK/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-system-zygote-startup/</loc>
+    <lastmod>2019-03-17T09:42:15.663Z</lastmod>
+    <data>
+        <display>
+        <title>Zygote进程启动过程分析</title>
+        <pubTime>2017-09-02T12:03:05.000Z</pubTime>
+        
+        <tag>Android</tag>
+         
+         
+           
+             
+              <breadCrumb title="AOSP" url="http://esligh.github.io/categories/AOSP/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/asop-contentprovider-src/</loc>
+    <lastmod>2019-03-17T09:42:12.415Z</lastmod>
+    <data>
+        <display>
+        <title>contentprovider源码走读</title>
+        <pubTime>2018-10-18T14:34:52.000Z</pubTime>
+        
+        <tag>Android</tag>
+         
+         
+           
+             
+              <breadCrumb title="AOSP" url="http://esligh.github.io/categories/AOSP/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
     <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-threadpool-src/</loc>
     <lastmod>2019-03-17T09:30:34.654Z</lastmod>
     <data>
@@ -90,26 +312,6 @@
         <display>
         <title>ServiceManager源码分析</title>
         <pubTime>2017-05-15T13:42:35.000Z</pubTime>
-        
-        <tag>Android</tag>
-         
-         
-           
-             
-              <breadCrumb title="AOSP" url="http://esligh.github.io/categories/AOSP/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-system-zygote-startup/</loc>
-    <lastmod>2019-03-17T09:28:27.196Z</lastmod>
-    <data>
-        <display>
-        <title>Zygote进程启动过程分析</title>
-        <pubTime>2017-09-02T12:03:05.000Z</pubTime>
         
         <tag>Android</tag>
          
@@ -230,66 +432,6 @@
         <display>
         <title>Volley网络库源码分析</title>
         <pubTime>2015-11-19T13:32:18.000Z</pubTime>
-        
-        <tag>Android</tag>
-         
-         
-           
-             
-              <breadCrumb title="Android Library" url="http://esligh.github.io/categories/Android-Library/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-library-okhttp3-3-src-md/</loc>
-    <lastmod>2019-03-17T02:20:11.386Z</lastmod>
-    <data>
-        <display>
-        <title>OKHttp的缓存策略</title>
-        <pubTime>2017-10-27T01:17:48.000Z</pubTime>
-        
-        <tag>Android</tag>
-         
-         
-           
-             
-              <breadCrumb title="Android Library" url="http://esligh.github.io/categories/Android-Library/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-library-okhttp3-2-src/</loc>
-    <lastmod>2019-03-17T01:40:51.231Z</lastmod>
-    <data>
-        <display>
-        <title>OkHttp源码分析(二)</title>
-        <pubTime>2017-10-20T01:57:55.000Z</pubTime>
-        
-        <tag>Android</tag>
-         
-         
-           
-             
-              <breadCrumb title="Android Library" url="http://esligh.github.io/categories/Android-Library/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-library-okhttp3-1-src/</loc>
-    <lastmod>2019-03-17T01:27:52.722Z</lastmod>
-    <data>
-        <display>
-        <title>OkHttp源码分析(一)</title>
-        <pubTime>2017-10-19T01:57:55.000Z</pubTime>
         
         <tag>Android</tag>
          
@@ -501,88 +643,6 @@
 
     
   <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-reentrantlock-src/</loc>
-    <lastmod>2019-03-16T08:11:36.737Z</lastmod>
-    <data>
-        <display>
-        <title>Reentrantlock源码分析</title>
-        <pubTime>2016-08-27T00:29:53.000Z</pubTime>
-        
-        <tag>java</tag>
-         
-         
-           
-             
-              <breadCrumb title="JDK" url="http://esligh.github.io/categories/JDK/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-hashtable-src/</loc>
-    <lastmod>2019-03-16T08:11:29.955Z</lastmod>
-    <data>
-        <display>
-        <title>Hashtable源码分析</title>
-        <pubTime>2016-07-23T12:55:24.000Z</pubTime>
-        
-        <tag>java</tag>
-         
-         
-           
-             
-              <breadCrumb title="JDK" url="http://esligh.github.io/categories/JDK/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-hashmap-src/</loc>
-    <lastmod>2019-03-16T08:11:19.501Z</lastmod>
-    <data>
-        <display>
-        <title>HashMap源码分析</title>
-        <pubTime>2016-07-22T03:29:24.000Z</pubTime>
-        
-        <tag>java</tag>
-         
-         
-           
-             
-              <breadCrumb title="JDK" url="http://esligh.github.io/categories/JDK/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-arraylist-src/</loc>
-    <lastmod>2019-03-16T08:11:12.849Z</lastmod>
-    <data>
-        <display>
-        <title>ArrayList源码分析</title>
-        <pubTime>2016-07-19T11:23:50.000Z</pubTime>
-        
-        <tag>java</tag>
-         
-        <tag>jdk</tag>
-         
-         
-           
-             
-              <breadCrumb title="JDK" url="http://esligh.github.io/categories/JDK/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
     <loc>http://esligh.github.io/%5Bobject%20Object%5D/jdk-aqs-src/</loc>
     <lastmod>2019-03-16T08:11:05.185Z</lastmod>
     <data>
@@ -667,52 +727,12 @@
 
     
   <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/asop-contentprovider-src/</loc>
-    <lastmod>2019-03-16T08:10:22.575Z</lastmod>
-    <data>
-        <display>
-        <title>contentprovider源码走读</title>
-        <pubTime>2018-10-18T14:34:52.000Z</pubTime>
-        
-        <tag>Android</tag>
-         
-         
-           
-             
-              <breadCrumb title="AOSP" url="http://esligh.github.io/categories/AOSP/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
     <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-surfaceview-src/</loc>
     <lastmod>2019-03-16T08:10:02.539Z</lastmod>
     <data>
         <display>
         <title>SurfaceView源码分析</title>
         <pubTime>2017-08-24T09:01:38.000Z</pubTime>
-        
-        <tag>AOSP</tag>
-         
-         
-           
-             
-              <breadCrumb title="AOSP" url="http://esligh.github.io/categories/AOSP/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-surfaceflinger-composer-src/</loc>
-    <lastmod>2019-03-16T08:09:35.798Z</lastmod>
-    <data>
-        <display>
-        <title>SurfaceFlinger合成layer过程详解</title>
-        <pubTime>2018-08-02T08:51:26.000Z</pubTime>
         
         <tag>AOSP</tag>
          
@@ -1060,46 +1080,6 @@
            
              
               <breadCrumb title="AOSP" url="http://esligh.github.io/categories/AOSP/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-listview-src/</loc>
-    <lastmod>2019-03-16T08:01:36.830Z</lastmod>
-    <data>
-        <display>
-        <title>ListView的源码分析</title>
-        <pubTime>2017-08-30T09:01:38.000Z</pubTime>
-        
-        <tag>Android</tag>
-         
-         
-           
-             
-              <breadCrumb title="AOSP" url="http://esligh.github.io/categories/AOSP/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-libray-leakcanary-src/</loc>
-    <lastmod>2019-03-16T08:01:02.917Z</lastmod>
-    <data>
-        <display>
-        <title>LeakCanary内存泄漏检测机制原理</title>
-        <pubTime>2017-12-21T10:23:37.000Z</pubTime>
-        
-        <tag>Android</tag>
-         
-         
-           
-             
-              <breadCrumb title="Android Library" url="http://esligh.github.io/categories/Android-Library/"/>
           
         </display>
     </data>

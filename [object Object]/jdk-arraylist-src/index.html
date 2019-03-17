@@ -87,7 +87,7 @@
 <meta property="og:site_name" content="esli&#39;s Blog">
 <meta property="og:description" content="继承关系 12public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;        implements List&amp;lt;E&amp;gt;, RandomAccess, Cloneable, java.io.Serializable ArrayList是开发者广泛使用的java集合，它继承自AbstractList 实现了List接口">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2019-03-16T08:11:12.849Z">
+<meta property="og:updated_time" content="2019-03-17T09:43:10.348Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="ArrayList源码分析">
 <meta name="twitter:description" content="继承关系 12public class ArrayList&amp;lt;E&amp;gt; extends AbstractList&amp;lt;E&amp;gt;        implements List&amp;lt;E&amp;gt;, RandomAccess, Cloneable, java.io.Serializable ArrayList是开发者广泛使用的java集合，它继承自AbstractList 实现了List接口">
@@ -409,8 +409,7 @@
 <p>在指定索引处添加元素</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> index, E element)</span> </span>&#123;</span><br><span class="line">    rangeCheckForAdd(index);</span><br><span class="line"></span><br><span class="line">    ensureCapacityInternal(size + <span class="number">1</span>);  <span class="comment">// Increments modCount!!</span></span><br><span class="line">    System.arraycopy(elementData, index, elementData, index + <span class="number">1</span>,</span><br><span class="line">                        size - index);</span><br><span class="line">    elementData[index] = element;</span><br><span class="line">    size++;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>这个方法将元素element添加到数组中指定的index位置，所以效率上比add要慢，因为可能需要对数组元素进行挪动。同样这里需要保证足够的空间，并在添加完成后增加size计数。</p>
-<p>对于Add方法，这里需要注意的是当elemmentData数组为空时，如果执行add(1,E)时会抛出IndexOutOfBoundsException<br>
-这是因为在Add之前通过rangeCheckForAdd检查了index的值是否在[0,size]的区间，如果不再该区间那么抛出该异常。</p>
+<p>对于Add方法，这里需要注意的是当elemmentData数组为空时，如果执行add(1,E)时会抛出IndexOutOfBoundsException这是因为在Add之前通过rangeCheckForAdd检查了index的值是否在[0,size]的区间，如果不再该区间那么抛出该异常。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">rangeCheckForAdd</span><span class="params">(<span class="keyword">int</span> index)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (index &gt; size || index &lt; <span class="number">0</span>)</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IndexOutOfBoundsException(outOfBoundsMsg(index));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <h3 id="元素删除"><a class="markdownIt-Anchor" href="#元素删除"></a> 元素删除</h3>
 <p>元素的删除有两个版本，分别针对索引和元素进行删除</p>
@@ -420,8 +419,7 @@
 <p>通过元素删除首先判断要删除的元素o是否为null，如果为null，遍历当前数组找到对应的索引然后通过fastRemove删除，如果o不为null,则通过其equals方法在数组中找到对应的元素索引，然后通过fastRemove删除。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">fastRemove</span><span class="params">(<span class="keyword">int</span> index)</span> </span>&#123;</span><br><span class="line">    modCount++;</span><br><span class="line">    <span class="keyword">int</span> numMoved = size - index - <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">if</span> (numMoved &gt; <span class="number">0</span>)</span><br><span class="line">        System.arraycopy(elementData, index+<span class="number">1</span>, elementData, index,</span><br><span class="line">                            numMoved);</span><br><span class="line">    elementData[--size] = <span class="keyword">null</span>; <span class="comment">// clear to let GC do its work</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>这里有个问题：可以用for循环直接删除ArrayList的特定元素？<br>
-答案是不可以，不同的for循环删除可能错误都不同，如果时一般的for循环则只能删除一个元素，<br>
-而如果使用泛型for删除的话会抛出ConcurrentModificationException，使用泛型for会用到List内部的迭代器Itr，它在通过next遍历元素时会通过checkForComodification检查ArrayList的modCount和expectedModCount是否一直，不一致的话就会抛出ConcurrentModificationException异常。</p>
+答案是不可以，不同的for循环删除可能错误都不同，如果时一般的for循环则只能删除一个元素，而如果使用泛型for删除的话会抛出ConcurrentModificationException，使用泛型for会用到List内部的迭代器Itr，它在通过next遍历元素时会通过checkForComodification检查ArrayList的modCount和expectedModCount是否一直，不一致的话就会抛出ConcurrentModificationException异常。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">ArrayList&lt;String&gt; arr = <span class="keyword">new</span> ArrayList&lt;String&gt;();</span><br><span class="line">arr.add()</span><br><span class="line">...</span><br><span class="line"><span class="keyword">for</span>(String item:arr)&#123;</span><br><span class="line">    <span class="keyword">if</span>(item.equals(...))&#123;</span><br><span class="line">        arr.remove(item);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>这种删除方式在remove方法中删除元素会更新modCount计数，而expectedModCount只会在迭代器版本的remove方法中更新，所以导致了不一致的情况，正确的方法是使用list.iterator()对ArrayList循环删除。</p>
 <h3 id="扩容"><a class="markdownIt-Anchor" href="#扩容"></a> 扩容</h3>
@@ -589,7 +587,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">61</span>
+                  <span class="site-state-item-count">60</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
