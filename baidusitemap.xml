@@ -4,6 +4,26 @@
 
     
   <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-binder-1-src/</loc>
+    <lastmod>2019-03-17T10:00:15.164Z</lastmod>
+    <data>
+        <display>
+        <title>理解Binder系列：开篇</title>
+        <pubTime>2019-02-28T13:42:35.000Z</pubTime>
+        
+        <tag>Android</tag>
+         
+         
+           
+             
+              <breadCrumb title="AOSP" url="http://esligh.github.io/categories/AOSP/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
     <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-surfaceflinger-composer-src/</loc>
     <lastmod>2019-03-17T09:53:02.690Z</lastmod>
     <data>
@@ -461,46 +481,6 @@
 
     
   <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-plugin-res/</loc>
-    <lastmod>2019-03-16T13:59:11.708Z</lastmod>
-    <data>
-        <display>
-        <title>插件化/热修复原理</title>
-        <pubTime>2017-12-22T00:40:40.000Z</pubTime>
-        
-        <tag>Android</tag>
-         
-         
-           
-             
-              <breadCrumb title="AOSP" url="http://esligh.github.io/categories/AOSP/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-binder-1-src/</loc>
-    <lastmod>2019-03-16T12:59:34.398Z</lastmod>
-    <data>
-        <display>
-        <title>理解Binder系列：开篇</title>
-        <pubTime>2017-05-10T13:42:35.000Z</pubTime>
-        
-        <tag>Android</tag>
-         
-         
-           
-             
-              <breadCrumb title="AOSP" url="http://esligh.github.io/categories/AOSP/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
     <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-build/</loc>
     <lastmod>2019-03-16T12:55:26.592Z</lastmod>
     <data>
@@ -527,26 +507,6 @@
         <display>
         <title>Android6.0 动态权限机制</title>
         <pubTime>2017-12-22T00:40:40.000Z</pubTime>
-        
-        <tag>Android</tag>
-         
-         
-           
-             
-              <breadCrumb title="AOSP" url="http://esligh.github.io/categories/AOSP/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-memory-mgr/</loc>
-    <lastmod>2019-03-16T08:42:41.045Z</lastmod>
-    <data>
-        <display>
-        <title>Android 的内存管理</title>
-        <pubTime>2017-10-15T02:10:04.000Z</pubTime>
         
         <tag>Android</tag>
          

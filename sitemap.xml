@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-binder-1-src/</loc>
+    
+    <lastmod>2019-03-17T10:00:15.164Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-surfaceflinger-composer-src/</loc>
     
     <lastmod>2019-03-17T09:53:02.690Z</lastmod>
@@ -163,20 +170,6 @@
   </url>
   
   <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-plugin-res/</loc>
-    
-    <lastmod>2019-03-16T13:59:11.708Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-binder-1-src/</loc>
-    
-    <lastmod>2019-03-16T12:59:34.398Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-build/</loc>
     
     <lastmod>2019-03-16T12:55:26.592Z</lastmod>
@@ -187,13 +180,6 @@
     <loc>http://esligh.github.io/%5Bobject%20Object%5D/android-permission-src/</loc>
     
     <lastmod>2019-03-16T12:47:58.989Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-memory-mgr/</loc>
-    
-    <lastmod>2019-03-16T08:42:41.045Z</lastmod>
     
   </url>
   
