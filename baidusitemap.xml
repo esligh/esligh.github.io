@@ -4,12 +4,52 @@
 
     
   <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-binder-permission-control-src/</loc>
+    <lastmod>2019-03-22T14:33:34.788Z</lastmod>
+    <data>
+        <display>
+        <title>Binder的权限控制</title>
+        <pubTime>2019-03-21T03:26:05.000Z</pubTime>
+        
+        <tag>Android</tag>
+         
+         
+           
+             
+              <breadCrumb title="AOSP" url="http://esligh.github.io/categories/AOSP/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
     <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-binder-1-src/</loc>
-    <lastmod>2019-03-17T10:00:15.164Z</lastmod>
+    <lastmod>2019-03-17T10:10:56.598Z</lastmod>
     <data>
         <display>
         <title>理解Binder系列：开篇</title>
         <pubTime>2019-02-28T13:42:35.000Z</pubTime>
+        
+        <tag>Android</tag>
+         
+         
+           
+             
+              <breadCrumb title="AOSP" url="http://esligh.github.io/categories/AOSP/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-camera-1-src/</loc>
+    <lastmod>2019-03-17T10:09:46.878Z</lastmod>
+    <data>
+        <display>
+        <title>Camera源码分析</title>
+        <pubTime>2017-07-24T10:02:31.000Z</pubTime>
         
         <tag>Android</tag>
          
@@ -507,26 +547,6 @@
         <display>
         <title>Android6.0 动态权限机制</title>
         <pubTime>2017-12-22T00:40:40.000Z</pubTime>
-        
-        <tag>Android</tag>
-         
-         
-           
-             
-              <breadCrumb title="AOSP" url="http://esligh.github.io/categories/AOSP/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://esligh.github.io/%5Bobject%20Object%5D/aosp-camera-1-src/</loc>
-    <lastmod>2019-03-16T08:27:37.559Z</lastmod>
-    <data>
-        <display>
-        <title>Camera源码分析</title>
-        <pubTime>2017-07-24T10:02:31.000Z</pubTime>
         
         <tag>Android</tag>
          
